@@ -1,0 +1,2538 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>셀프 재무진단 도구</title>
+<style>
+  :root {
+    --primary: #2c5282;
+    --primary-light: #4299e1;
+    --bg: #f7fafc;
+    --card: #ffffff;
+    --text: #1a202c;
+    --muted: #4a5568;
+    --border: #e2e8f0;
+    --good: #38a169;
+    --warn: #d69e2e;
+    --bad: #e53e3e;
+    --hl: #ebf8ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
+    font-size: 16px; line-height: 1.6; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 16px; }
+  header.topbar { position: sticky; top: 0; background: #fff; border-bottom: 1px solid var(--border);
+    padding: 12px 16px; z-index: 100; }
+  header.topbar .top-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+  header.topbar h1 { margin: 0; font-size: 18px; color: var(--primary); }
+  .reset-top-btn { background: #fed7d7; color: #c53030; border: 1px solid #fc8181;
+    padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .progress-bar { background: #edf2f7; height: 8px; border-radius: 4px; overflow: hidden; }
+  .progress-fill { background: var(--primary-light); height: 100%; width: 0%; transition: width .3s; }
+  .nav-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .nav-tabs button { font-size: 13px; padding: 6px 10px; border: 1px solid var(--border);
+    background: #fff; border-radius: 4px; cursor: pointer; color: var(--muted); }
+  .nav-tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .card h2 { margin: 0 0 6px; color: var(--primary); font-size: 20px; }
+  .card .section-help { font-size: 14px; color: var(--muted); margin-bottom: 16px;
+    padding: 8px 12px; background: var(--hl); border-radius: 4px; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .field .hint { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .field .sub-hint { font-size: 13px; color: var(--primary); margin-top: 2px; font-weight: 600; }
+  input[type="text"], input[type="number"], select, textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+    border-radius: 4px; font-size: 15px; font-family: inherit; background: #fff; }
+  input[type="number"] { text-align: right; }
+  textarea { min-height: 60px; resize: vertical; }
+  input:disabled, select:disabled { background: #edf2f7; color: var(--muted); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .row > .field { flex: 1 1 200px; }
+
+  .radio-group, .check-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .radio-group label, .check-group label { display: inline-flex; align-items: center;
+    background: #fff; border: 1px solid var(--border); border-radius: 4px;
+    padding: 6px 10px; cursor: pointer; font-weight: normal; font-size: 14px; margin: 0; }
+  .radio-group input, .check-group input { margin-right: 6px; }
+  .radio-group label:has(input:checked), .check-group label:has(input:checked) {
+    background: var(--hl); border-color: var(--primary-light); color: var(--primary); font-weight: 600; }
+
+  .money-input { display: flex; align-items: center; gap: 4px; }
+  .money-input input { flex: 1; min-width: 80px; }
+  .money-input .step-btn { width: 36px; height: 38px; border: 1px solid var(--border);
+    background: #fff; border-radius: 4px; cursor: pointer; font-size: 18px; font-weight: bold;
+    color: var(--primary); padding: 0; flex-shrink: 0; }
+  .money-input .step-btn:hover { background: var(--hl); }
+  .money-input .unit { font-size: 13px; color: var(--muted); white-space: nowrap; }
+
+  .asset-card { border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+    margin-bottom: 12px; background: #fafbfc; }
+  .asset-card .asset-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .asset-card .asset-row label { width: 100px; font-size: 13px; font-weight: 600; flex-shrink: 0; color: var(--muted); }
+  .asset-card .asset-row .ctrl { flex: 1; }
+  .asset-card .notes-box { background: #fff; border: 1px dashed var(--border); border-radius: 6px;
+    padding: 10px; margin-top: 8px; }
+  .asset-card .notes-box .note-title { font-size: 12px; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+  .asset-card .del-btn { background: #fed7d7; border: none; padding: 6px 14px;
+    border-radius: 4px; cursor: pointer; font-size: 13px; color: #c53030; }
+  .add-row-btn { margin-top: 8px; background: var(--primary); color: #fff; border: none;
+    padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+
+  .summary-box { background: #f0fff4; border: 1px solid #9ae6b4; border-radius: 6px;
+    padding: 12px; margin-top: 12px; font-size: 14px; }
+  .summary-box.warn { background: #fffaf0; border-color: #fbd38d; }
+  .summary-box.bad { background: #fff5f5; border-color: #feb2b2; }
+  .summary-box pre { font-family: "Consolas", monospace; font-size: 13px; margin: 0;
+    white-space: pre-wrap; }
+
+  .collapse-btn { background: #edf2f7; border: 1px solid var(--border); padding: 6px 12px;
+    border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 8px; }
+  .toggle-btn { background: var(--primary-light); border: none; color: #fff; padding: 8px 16px;
+    border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; margin-left: 8px; }
+  .toggle-btn.active { background: var(--primary); }
+  .collapse-body { display: none; padding: 12px; background: #f7fafc; border-radius: 4px;
+    margin-bottom: 8px; }
+  .collapse-body.open { display: block; }
+
+  .ratio-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px; margin: 12px 0; }
+  .ratio-card { padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: #fff; }
+  .ratio-card .label { font-size: 13px; color: var(--muted); }
+  .ratio-card .value { font-size: 24px; font-weight: bold; margin: 4px 0; }
+  .ratio-card .verdict { font-size: 13px; font-weight: 600; }
+  .ratio-card.good { background: #f0fff4; border-color: #9ae6b4; }
+  .ratio-card.good .verdict { color: var(--good); }
+  .ratio-card.warn { background: #fffaf0; border-color: #fbd38d; }
+  .ratio-card.warn .verdict { color: var(--warn); }
+  .ratio-card.bad { background: #fff5f5; border-color: #feb2b2; }
+  .ratio-card.bad .verdict { color: var(--bad); }
+
+  .prompt-box { position: relative; background: #1a202c; color: #e2e8f0;
+    padding: 16px; border-radius: 6px; font-family: "Consolas", monospace;
+    font-size: 13px; white-space: pre-wrap; max-height: 500px; overflow-y: auto; }
+  .copy-btn { position: absolute; top: 8px; right: 8px; background: var(--primary-light);
+    color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;
+    font-size: 13px; }
+  .ai-links { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .ai-links a { padding: 10px 16px; background: #fff; border: 2px solid var(--primary);
+    color: var(--primary); border-radius: 6px; text-decoration: none; font-weight: 600;
+    font-size: 14px; }
+  .ai-links a:hover { background: var(--primary); color: #fff; }
+
+  .action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .action-bar button { padding: 12px 18px; border: none; border-radius: 6px;
+    cursor: pointer; font-size: 15px; font-weight: 600; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-secondary { background: #fff; border: 1px solid var(--border) !important; color: var(--text); }
+  .btn-danger { background: #fed7d7; color: #c53030; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .nav-buttons { display: flex; justify-content: space-between; margin-top: 16px; gap: 8px; }
+  .nav-buttons button { padding: 12px 24px; border-radius: 6px; border: none;
+    cursor: pointer; font-size: 15px; font-weight: 600; }
+  .nav-buttons .prev { background: #edf2f7; color: var(--text); }
+  .nav-buttons .next { background: var(--primary); color: #fff; }
+
+  .intro-card { background: linear-gradient(135deg, #4299e1, #2c5282); color: #fff;
+    border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .intro-card h2 { color: #fff; margin-top: 0; }
+  .intro-card .privacy { background: rgba(255,255,255,.15); padding: 12px;
+    border-radius: 6px; margin-top: 12px; font-size: 14px; }
+
+  .child-ages { display: none; }
+  .child-ages.show { display: block; }
+  .spouse-fields { display: none; }
+  .spouse-fields.show { display: block; }
+
+  .auto-imported { background: #fffbea; border: 1px solid #f6e05e; border-radius: 6px;
+    padding: 10px 12px; margin-bottom: 10px; font-size: 13px; }
+
+  /* Print Report */
+  #printReport { display: none; }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 8px; }
+    .card { padding: 14px; }
+    .asset-card .asset-row { flex-wrap: wrap; }
+    .asset-card .asset-row label { width: 100%; margin-bottom: 4px; }
+    .asset-card .asset-row .ctrl { width: 100%; }
+    .nav-tabs button { font-size: 11px; padding: 4px 6px; }
+    .ratio-grid { grid-template-columns: 1fr; }
+    .money-input .step-btn { width: 40px; height: 40px; font-size: 20px; }
+  }
+
+  @media print {
+    @page { size: A4; margin: 15mm; }
+    body > *:not(#printReport) { display: none !important; }
+    #printReport { display: block !important;
+      font-family: -apple-system, "Malgun Gothic", sans-serif;
+      color: #000; background: #fff; padding: 0;
+      font-size: 11pt; line-height: 1.5; }
+    #printReport .pr-header { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 16px; }
+    #printReport .pr-header h1 { font-size: 22pt; margin: 0 0 6px; }
+    #printReport .pr-meta { color: #555; font-size: 10pt; }
+    #printReport h2 { font-size: 14pt; margin: 18px 0 8px; padding-bottom: 4px;
+      border-bottom: 1px solid #999; page-break-after: avoid; }
+    #printReport h3 { font-size: 12pt; margin: 10px 0 4px; page-break-after: avoid; }
+    #printReport .pr-section { page-break-inside: avoid; margin-bottom: 12px; }
+    #printReport table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 10pt; }
+    #printReport th, #printReport td { border: 1px solid #999; padding: 5px 7px; text-align: left; vertical-align: top; }
+    #printReport th { background: #f0f0f0; }
+    #printReport .pr-ratio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    #printReport .pr-ratio .rc { border: 1px solid #999; padding: 8px; }
+    #printReport .pr-ratio .rc .lbl { font-size: 9pt; color: #555; }
+    #printReport .pr-ratio .rc .val { font-size: 14pt; font-weight: bold; }
+    #printReport .pr-ratio .rc.good { background: #e6fffa; }
+    #printReport .pr-ratio .rc.warn { background: #fffbeb; }
+    #printReport .pr-ratio .rc.bad { background: #fff5f5; }
+    #printReport ul { margin: 4px 0 4px 18px; padding: 0; }
+    #printReport li { margin: 2px 0; }
+    #printReport .pr-foot { margin-top: 20px; font-size: 9pt; color: #777;
+      border-top: 1px dashed #999; padding-top: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap" style="padding:0;">
+    <div class="top-row">
+      <h1>📊 셀프 재무진단 도구</h1>
+      <button class="reset-top-btn" type="button" onclick="resetAll()">🗑 초기화</button>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="nav-tabs" id="navTabs"></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Section 0: Intro -->
+  <div class="section active" data-section="0">
+    <div class="intro-card">
+      <h2>안녕하세요 👋</h2>
+      <p>본 도구는 여러분의 재무 상황을 입력하면 두 가지를 만들어 드립니다.</p>
+      <ol>
+        <li><b>간단한 재무비율 진단</b> — 가계수지·저축성향 등 핵심 지표</li>
+        <li><b>AI 챗봇용 프롬프트</b> — ChatGPT·Claude·Gemini에 복사해 더 깊은 분석</li>
+      </ol>
+      <div class="privacy">
+        🔒 <b>개인정보 안내</b><br>
+        여러분이 입력한 정보는 외부 서버로 전송되지 않으며, 본인 브라우저에만 임시 저장됩니다.
+        페이지를 닫으면 사라집니다(직접 저장한 PDF 제외). 안심하고 입력하세요.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>이용 안내</h2>
+      <ul>
+        <li>모든 항목은 <b>공란 허용</b>입니다. 모르거나 해당없으면 비워두세요.</li>
+        <li>금액 옆 <b>+/− 버튼</b>으로 빠르게 조정할 수 있습니다.</li>
+        <li>입력 칸 클릭 시 디폴트 값이 자동 선택됩니다. 그대로 숫자를 입력하면 덮어쓰기 됩니다.</li>
+        <li>입력 내용은 자동으로 저장됩니다.</li>
+      </ul>
+      <div class="nav-buttons">
+        <div></div>
+        <button class="next" onclick="goSection(1)">시작하기 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 1: 기본 정보 -->
+  <div class="section" data-section="1">
+    <div class="card">
+      <h2>① 기본 정보</h2>
+      <div class="section-help">가족 구성과 직업 안정성은 재무 계획의 출발점입니다.</div>
+
+      <div class="row">
+        <div class="field">
+          <label>본인 나이</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('age',-1)">−</button>
+            <input type="number" id="age" value="48">
+            <button class="step-btn" type="button" onclick="step('age',1)">+</button>
+            <span class="unit">세</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>배우자 유무</label>
+          <div class="radio-group" data-name="spouse">
+            <label><input type="radio" name="spouse" value="있음">있음</label>
+            <label><input type="radio" name="spouse" value="없음">없음</label>
+            <label><input type="radio" name="spouse" value="사별·이혼">사별·이혼</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="spouse-fields" id="spouseFields">
+        <div class="field">
+          <label>배우자 나이</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('spouseAge',-1)">−</button>
+            <input type="number" id="spouseAge" value="46">
+            <button class="step-btn" type="button" onclick="step('spouseAge',1)">+</button>
+            <span class="unit">세</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>자녀 수</label>
+          <div class="radio-group" data-name="children">
+            <label><input type="radio" name="children" value="0">0명</label>
+            <label><input type="radio" name="children" value="1">1명</label>
+            <label><input type="radio" name="children" value="2">2명</label>
+            <label><input type="radio" name="children" value="3+">3명+</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="child-ages" id="childAges">
+        <div class="field">
+          <label>자녀 연령대 (다중 선택)</label>
+          <div class="check-group">
+            <label><input type="checkbox" name="childAges" value="미취학">미취학</label>
+            <label><input type="checkbox" name="childAges" value="초등">초등</label>
+            <label><input type="checkbox" name="childAges" value="중고등">중고등</label>
+            <label><input type="checkbox" name="childAges" value="대학생">대학생</label>
+            <label><input type="checkbox" name="childAges" value="성인독립">성인독립</label>
+            <label><input type="checkbox" name="childAges" value="미혼성인비독립">미혼성인비독립</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>거주 지역</label>
+        <div class="radio-group" data-name="region">
+          <label><input type="radio" name="region" value="수도권">수도권</label>
+          <label><input type="radio" name="region" value="광역시">광역시</label>
+          <label><input type="radio" name="region" value="중소도시">중소도시</label>
+          <label><input type="radio" name="region" value="군 단위">군 단위</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>직업 유형</label>
+        <div class="radio-group" data-name="job">
+          <label><input type="radio" name="job" value="공무원·공공기관">공무원·공공기관</label>
+          <label><input type="radio" name="job" value="대기업">대기업</label>
+          <label><input type="radio" name="job" value="중소기업">중소기업</label>
+          <label><input type="radio" name="job" value="자영업">자영업</label>
+          <label><input type="radio" name="job" value="프리랜서">프리랜서</label>
+          <label><input type="radio" name="job" value="무직·전업">무직·전업</label>
+          <label><input type="radio" name="job" value="기타">기타</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>고용 안정성</label>
+        <div class="radio-group" data-name="jobStability">
+          <label><input type="radio" name="jobStability" value="매우 안정">매우 안정(정년 보장)</label>
+          <label><input type="radio" name="jobStability" value="안정">안정</label>
+          <label><input type="radio" name="jobStability" value="보통">보통</label>
+          <label><input type="radio" name="jobStability" value="불안정">불안정</label>
+          <label><input type="radio" name="jobStability" value="매우 불안정">매우 불안정</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>부모 부양 부담</label>
+        <div class="radio-group" data-name="parents">
+          <label><input type="radio" name="parents" value="없음">없음</label>
+          <label><input type="radio" name="parents" value="정서적 지원만">정서적 지원만</label>
+          <label><input type="radio" name="parents" value="일부 경제적 지원">일부 경제적 지원</label>
+          <label><input type="radio" name="parents" value="전적 부양">전적 부양</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>건강 특이사항</label>
+        <div class="radio-group" data-name="health">
+          <label><input type="radio" name="health" value="없음">없음</label>
+          <label><input type="radio" name="health" value="본인 만성질환">본인 만성질환</label>
+          <label><input type="radio" name="health" value="배우자 건강 우려">배우자 건강 우려</label>
+        </div>
+        <input type="text" id="healthOther" placeholder="기타 (자유 입력)" style="margin-top: 6px;">
+      </div>
+
+      <div class="nav-buttons">
+        <button class="prev" onclick="goSection(0)">← 이전</button>
+        <button class="next" onclick="goSection(2)">다음 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: 자산 -->
+  <div class="section" data-section="2">
+    <div class="card">
+      <h2>② 자산</h2>
+      <div class="section-help">
+        보유 중인 자산을 항목별로 추가해 주세요. <b>모르면 비워두세요.</b><br>
+        ※ 퇴직금은 여기 포함하지 마세요(섹션 5에서 별도 입력).
+      </div>
+
+      <div id="assetCards"></div>
+      <button class="add-row-btn" onclick="addAssetRow()">+ 자산 항목 추가</button>
+
+      <div class="summary-box" id="assetSummary"></div>
+
+      <div class="nav-buttons">
+        <button class="prev" onclick="goSection(1)">← 이전</button>
+        <button class="next" onclick="goSection(3)">다음 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: 부채 -->
+  <div class="section" data-section="3">
+    <div class="card">
+      <h2>③ 부채</h2>
+      <div class="section-help">대출이 있다면 잔액·금리·만기를 입력해 주세요.</div>
+
+      <div id="autoMortgage"></div>
+
+      <h3 style="font-size:16px; margin-bottom:8px;">주택담보대출 (직접 입력)</h3>
+      <div class="field">
+        <div class="radio-group" data-name="mortgageHas">
+          <label><input type="radio" name="mortgageHas" value="없음">없음</label>
+          <label><input type="radio" name="mortgageHas" value="있음">있음</label>
+        </div>
+      </div>
+      <div id="mortgageFields" style="display:none;">
+        <div class="field">
+          <label>잔액 (만원, ±1,000만원)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('mortgageBalance',-1000)">−</button>
+            <input type="number" id="mortgageBalance" value="20000">
+            <button class="step-btn" type="button" onclick="step('mortgageBalance',1000)">+</button>
+            <span class="unit">만원</span>
+          </div>
+          <div class="sub-hint" id="mortgageBalanceHint"></div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>금리 (%, ±0.1)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('mortgageRate',-0.1)">−</button>
+              <input type="number" id="mortgageRate" step="0.1" value="3.0">
+              <button class="step-btn" type="button" onclick="step('mortgageRate',0.1)">+</button>
+              <span class="unit">%</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>만기 남은 기간 (년, ±1)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('mortgageYears',-1)">−</button>
+              <input type="number" id="mortgageYears" value="20">
+              <button class="step-btn" type="button" onclick="step('mortgageYears',1)">+</button>
+              <span class="unit">년</span>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>월 상환액 (만원, ±5)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('mortgageMonthly',-5)">−</button>
+              <input type="number" id="mortgageMonthly" value="0">
+              <button class="step-btn" type="button" onclick="step('mortgageMonthly',5)">+</button>
+              <span class="unit">만원</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>원금 상환 유예 여부</label>
+            <div class="radio-group" data-name="mortgageGrace">
+              <label><input type="radio" name="mortgageGrace" value="유예 없음">유예 없음</label>
+              <label><input type="radio" name="mortgageGrace" value="이자만 납부">이자만 납부</label>
+              <label><input type="radio" name="mortgageGrace" value="잘 모름">잘 모름</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="font-size:16px; margin: 16px 0 8px;">신용대출 · 마이너스통장</h3>
+      <div class="field">
+        <div class="radio-group" data-name="creditHas">
+          <label><input type="radio" name="creditHas" value="없음">없음</label>
+          <label><input type="radio" name="creditHas" value="있음">있음</label>
+        </div>
+      </div>
+      <div id="creditFields" style="display:none;">
+        <div class="row">
+          <div class="field">
+            <label>잔액 (만원, ±100)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('creditBalance',-100)">−</button>
+              <input type="number" id="creditBalance" value="0">
+              <button class="step-btn" type="button" onclick="step('creditBalance',100)">+</button>
+              <span class="unit">만원</span>
+            </div>
+            <div class="sub-hint" id="creditBalanceHint"></div>
+          </div>
+          <div class="field">
+            <label>금리 (%, ±0.1)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('creditRate',-0.1)">−</button>
+              <input type="number" id="creditRate" step="0.1" value="5.0">
+              <button class="step-btn" type="button" onclick="step('creditRate',0.1)">+</button>
+              <span class="unit">%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="font-size:16px; margin: 16px 0 8px;">할부 · 카드 잔액</h3>
+      <div class="field">
+        <div class="radio-group" data-name="cardHas">
+          <label><input type="radio" name="cardHas" value="없음">없음</label>
+          <label><input type="radio" name="cardHas" value="있음">있음</label>
+        </div>
+      </div>
+      <div id="cardFields" style="display:none;">
+        <div class="field">
+          <label>잔액 (만원, ±100)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('cardBalance',-100)">−</button>
+            <input type="number" id="cardBalance" value="0">
+            <button class="step-btn" type="button" onclick="step('cardBalance',100)">+</button>
+            <span class="unit">만원</span>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="font-size:16px; margin: 16px 0 8px;">사적 채무</h3>
+      <div class="field">
+        <div class="radio-group" data-name="privateHas">
+          <label><input type="radio" name="privateHas" value="없음">없음</label>
+          <label><input type="radio" name="privateHas" value="있음">있음</label>
+        </div>
+      </div>
+      <div id="privateFields" style="display:none;">
+        <textarea id="privateNote" placeholder="누구에게/얼마/조건 등을 자유롭게 적어주세요"></textarea>
+      </div>
+
+      <div class="summary-box" id="debtSummary"></div>
+
+      <div class="nav-buttons">
+        <button class="prev" onclick="goSection(2)">← 이전</button>
+        <button class="next" onclick="goSection(4)">다음 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: 월 현금흐름 -->
+  <div class="section" data-section="4">
+    <div class="card">
+      <h2>④ 월 현금흐름</h2>
+      <div class="section-help">월간 수입과 지출, 연 단위 비정기 항목까지 빠짐없이 살펴봅니다.</div>
+
+      <h3 style="font-size:16px;">4-1. 월 수입</h3>
+      <div class="row">
+        <div class="field">
+          <label>본인 세후 월소득 (±5)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('incSelf',-5)">−</button>
+            <input type="number" id="incSelf" value="300">
+            <button class="step-btn" type="button" onclick="step('incSelf',5)">+</button>
+            <span class="unit">만원</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>배우자 세후 월소득 (±5)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('incSpouse',-5)">−</button>
+            <input type="number" id="incSpouse" value="300">
+            <button class="step-btn" type="button" onclick="step('incSpouse',5)">+</button>
+            <span class="unit">만원</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>기타 소득 (±5)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('incOther',-5)">−</button>
+            <input type="number" id="incOther" value="0">
+            <button class="step-btn" type="button" onclick="step('incOther',5)">+</button>
+            <span class="unit">만원</span>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="font-size:16px; margin-top: 16px;">4-2. 연 단위 비정기 수입</h3>
+      <div class="section-help" style="margin: 8px 0;">
+        성과급·인센티브·명절 보너스 등 연 단위 수입. 12로 나눠 월 환산값을 표시합니다.
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>성과급·인센티브 (연, ±100)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('bonusIncentive',-100)">−</button>
+            <input type="number" id="bonusIncentive" value="0">
+            <button class="step-btn" type="button" onclick="step('bonusIncentive',100)">+</button>
+            <span class="unit">만원</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>명절·결산 상여 (연, ±100)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('bonusHoliday',-100)">−</button>
+            <input type="number" id="bonusHoliday" value="0">
+            <button class="step-btn" type="button" onclick="step('bonusHoliday',100)">+</button>
+            <span class="unit">만원</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>기타 비정기 수입 (연)</label>
+          <input type="text" id="bonusOtherDesc" placeholder="설명">
+          <input type="number" id="bonusOtherAmt" placeholder="금액(만원)" style="margin-top:4px;">
+        </div>
+      </div>
+      <div class="summary-box" id="incomeSummary"></div>
+
+      <h3 style="font-size:16px; margin-top: 16px;">4-3. 월 지출
+        <button class="toggle-btn" type="button" id="expDetailBtn" onclick="toggleExpDetail()">상세입력</button>
+      </h3>
+      <div id="expSimple">
+        <div class="field">
+          <label>월 전체 지출 (±10)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('exTotal',-10)">−</button>
+            <input type="number" id="exTotal" value="150">
+            <button class="step-btn" type="button" onclick="step('exTotal',10)">+</button>
+            <span class="unit">만원</span>
+          </div>
+          <div class="hint">예: 월 150만원 지출. 항목별 입력이 필요하면 우측 [상세입력] 버튼을 누르세요.</div>
+        </div>
+      </div>
+      <div id="expDetail" style="display:none;">
+        <div class="row" id="expenseRows"></div>
+      </div>
+      <div class="summary-box" id="expenseSummary" style="display:none;"></div>
+
+      <h3 style="font-size:16px; margin-top: 16px;">4-4. 연 단위 비정기 지출
+        <button class="toggle-btn" type="button" id="exIrrDetailBtn" onclick="toggleExIrrDetail()">상세입력</button>
+      </h3>
+      <div class="section-help" style="margin: 8px 0;">
+        연 단위로 빠지는 큰 지출. 누락하면 실제 지출이 20~40% 과소평가됩니다.
+      </div>
+      <div id="exIrrSimple">
+        <div class="field">
+          <label>연 비정기 지출 합계 (±50)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('exIrrTotal',-50)">−</button>
+            <input type="number" id="exIrrTotal" value="300">
+            <button class="step-btn" type="button" onclick="step('exIrrTotal',50)">+</button>
+            <span class="unit">만원/년</span>
+          </div>
+          <div class="hint">자동차세·보험·휴가·경조사 등을 합쳐 대략적으로.</div>
+        </div>
+      </div>
+      <div id="exIrrDetail" style="display:none;">
+        <div class="row">
+          <div class="field"><label>자동차 보험료 (연)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('exCarIns',-5)">−</button>
+              <input type="number" id="exCarIns" value="0">
+              <button class="step-btn" type="button" onclick="step('exCarIns',5)">+</button>
+              <span class="unit">만원</span>
+            </div>
+          </div>
+          <div class="field"><label>재산세·자동차세 (연)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('exTax',-5)">−</button>
+              <input type="number" id="exTax" value="0">
+              <button class="step-btn" type="button" onclick="step('exTax',5)">+</button>
+              <span class="unit">만원</span>
+            </div>
+          </div>
+          <div class="field"><label>명절비·경조사비 (연)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('exHoliday',-5)">−</button>
+              <input type="number" id="exHoliday" value="0">
+              <button class="step-btn" type="button" onclick="step('exHoliday',5)">+</button>
+              <span class="unit">만원</span>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field"><label>휴가·여행비 (연)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('exTrip',-5)">−</button>
+              <input type="number" id="exTrip" value="0">
+              <button class="step-btn" type="button" onclick="step('exTrip',5)">+</button>
+              <span class="unit">만원</span>
+            </div>
+          </div>
+          <div class="field"><label>정기 건강검진비 (연)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('exHealth',-5)">−</button>
+              <input type="number" id="exHealth" value="0">
+              <button class="step-btn" type="button" onclick="step('exHealth',5)">+</button>
+              <span class="unit">만원</span>
+            </div>
+          </div>
+          <div class="field"><label>기타 연 지출</label>
+            <input type="text" id="exOtherDesc" placeholder="설명">
+            <input type="number" id="exOtherAmt" placeholder="금액(만원/연)" style="margin-top:4px;">
+          </div>
+        </div>
+      </div>
+      <div class="summary-box" id="exIrregularSummary"></div>
+
+      <h3 style="font-size:16px; margin-top: 16px;">4-5. 매월 정기 납입 저축·투자액</h3>
+      <div class="field">
+        <label>월 정기 저축액 합계 (±5)</label>
+        <div class="money-input">
+          <button class="step-btn" type="button" onclick="step('savingsMonthly',-5)">−</button>
+          <input type="number" id="savingsMonthly" value="0">
+          <button class="step-btn" type="button" onclick="step('savingsMonthly',5)">+</button>
+          <span class="unit">만원</span>
+        </div>
+        <div class="hint">자산 섹션의 월 납입금 합계와 일치하는지 아래 박스에서 확인하세요.</div>
+      </div>
+
+      <h3 style="font-size:16px; margin-top: 16px;">4-6. 자가검증</h3>
+      <div class="summary-box" id="cashflowVerify"></div>
+
+      <div class="nav-buttons">
+        <button class="prev" onclick="goSection(3)">← 이전</button>
+        <button class="next" onclick="goSection(5)">다음 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5: 노후 소득 정보 -->
+  <div class="section" data-section="5">
+    <div class="card">
+      <h2>⑤ 노후 소득 정보</h2>
+      <div class="section-help">은퇴 후 들어올 소득 흐름을 정리합니다.</div>
+
+      <h3 style="font-size:16px;">5-1. 국민연금</h3>
+      <div class="row">
+        <div class="field">
+          <label>본인 예상 수령액 (월, ±5)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('npsSelf',-5)">−</button>
+            <input type="number" id="npsSelf" value="100">
+            <button class="step-btn" type="button" onclick="step('npsSelf',5)">+</button>
+            <span class="unit">만원</span>
+          </div>
+          <div class="hint">국민연금공단(NPS) 홈페이지에서 정확히 조회 가능.</div>
+        </div>
+        <div class="field">
+          <label>배우자 예상 수령액 (월, ±5)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('npsSpouse',-5)">−</button>
+            <input type="number" id="npsSpouse" value="0">
+            <button class="step-btn" type="button" onclick="step('npsSpouse',5)">+</button>
+            <span class="unit">만원</span>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">5-2. 퇴직금 / 퇴직연금</h3>
+      <div class="field">
+        <label>유형</label>
+        <div class="radio-group" data-name="severanceType">
+          <label><input type="radio" name="severanceType" value="DB형">DB형</label>
+          <label><input type="radio" name="severanceType" value="DC형">DC형</label>
+          <label><input type="radio" name="severanceType" value="퇴직일시금">퇴직일시금</label>
+          <label><input type="radio" name="severanceType" value="잘 모름">잘 모름</label>
+          <label><input type="radio" name="severanceType" value="해당 없음">해당 없음</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>예상 수령액 (만원, ±100)</label>
+        <div class="money-input">
+          <button class="step-btn" type="button" onclick="step('severanceAmt',-100)">−</button>
+          <input type="number" id="severanceAmt" value="0">
+          <button class="step-btn" type="button" onclick="step('severanceAmt',100)">+</button>
+          <span class="unit">만원</span>
+        </div>
+        <div class="sub-hint" id="severanceAmtHint"></div>
+      </div>
+      <button class="collapse-btn" type="button" onclick="toggleCollapse('severanceCalc')">▼ 모의 계산 펼치기</button>
+      <div class="collapse-body" id="severanceCalc">
+        <div class="hint">DB형은 <b>퇴직 전 평균 월급여 × 근속연수</b>로 단순 추정. DC형은 운용 성과에 따라 달라져 직접 입력 권장.</div>
+        <div class="row">
+          <div class="field">
+            <label>퇴직 전 예상 월소득 (만원)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('severancePay',-10)">−</button>
+              <input type="number" id="severancePay" value="400">
+              <button class="step-btn" type="button" onclick="step('severancePay',10)">+</button>
+              <span class="unit">만원</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>근속 연수</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('severanceYears',-1)">−</button>
+              <input type="number" id="severanceYears" value="20">
+              <button class="step-btn" type="button" onclick="step('severanceYears',1)">+</button>
+              <span class="unit">년</span>
+            </div>
+          </div>
+        </div>
+        <button class="add-row-btn" type="button" onclick="calcSeverance()">계산해서 위에 채우기</button>
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">5-3. 개인연금</h3>
+      <div class="field">
+        <label>연금저축·IRP·연금보험 예상 월 수령액 (만원, 또는 "잘 모름")</label>
+        <input type="text" id="privatePension" placeholder="예: 50, 또는 잘 모름">
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">5-4. 주택연금 활용 의사</h3>
+      <div class="field">
+        <div class="radio-group" data-name="housingPension">
+          <label><input type="radio" name="housingPension" value="적극 활용">적극 활용</label>
+          <label><input type="radio" name="housingPension" value="비상시 활용">비상시 활용</label>
+          <label><input type="radio" name="housingPension" value="활용 안 함">활용 안 함</label>
+          <label><input type="radio" name="housingPension" value="미정">미정</label>
+        </div>
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">5-5. 절세 계좌 활용 현황</h3>
+      <div class="field">
+        <label>연금저축·IRP 세액공제 한도(연 900만원)까지 납입 중인가?</label>
+        <div class="radio-group" data-name="taxPension">
+          <label><input type="radio" name="taxPension" value="한도까지">한도까지 납입</label>
+          <label><input type="radio" name="taxPension" value="일부">일부 납입</label>
+          <label><input type="radio" name="taxPension" value="미납입">미납입</label>
+          <label><input type="radio" name="taxPension" value="잘 모름">잘 모름</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>ISA 가입 후 만기 도래 분이 있는가?</label>
+        <div class="radio-group" data-name="taxISA">
+          <label><input type="radio" name="taxISA" value="있음">있음(연금계좌 이전 검토)</label>
+          <label><input type="radio" name="taxISA" value="없음">없음</label>
+          <label><input type="radio" name="taxISA" value="잘 모름">잘 모름</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>연말정산 결과 패턴</label>
+        <div class="radio-group" data-name="taxYearEnd">
+          <label><input type="radio" name="taxYearEnd" value="환급">환급받는 편</label>
+          <label><input type="radio" name="taxYearEnd" value="추가납부">추가 납부하는 편</label>
+          <label><input type="radio" name="taxYearEnd" value="잘 모름">잘 모름</label>
+          <label><input type="radio" name="taxYearEnd" value="해당없음">해당 없음(종소세 신고)</label>
+        </div>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="prev" onclick="goSection(4)">← 이전</button>
+        <button class="next" onclick="goSection(6)">다음 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 6: 목적 자금 -->
+  <div class="section" data-section="6">
+    <div class="card">
+      <h2>⑥ 미래 예정된 큰 지출 (목적 자금)</h2>
+      <div class="section-help">앞으로 5~20년 내 들어갈 큰 지출을 미리 파악합니다.</div>
+
+      <h3 style="font-size:16px;">자녀 교육비</h3>
+      <div class="field">
+        <div class="radio-group" data-name="eduType">
+          <label><input type="radio" name="eduType" value="대학 학자금">대학 학자금</label>
+          <label><input type="radio" name="eduType" value="유학">유학</label>
+          <label><input type="radio" name="eduType" value="사교육">사교육</label>
+          <label><input type="radio" name="eduType" value="해당 없음">해당 없음</label>
+        </div>
+      </div>
+      <div id="eduFields">
+        <div class="row">
+          <div class="field"><label>예상 시기 (몇 년 후, ±1)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('eduWhen',-1)">−</button>
+              <input type="number" id="eduWhen" value="5">
+              <button class="step-btn" type="button" onclick="step('eduWhen',1)">+</button>
+              <span class="unit">년 후</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>총액 (만원, ±500)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('eduAmt',-500)">−</button>
+              <input type="number" id="eduAmt" value="0">
+              <button class="step-btn" type="button" onclick="step('eduAmt',500)">+</button>
+              <span class="unit">만원</span>
+            </div>
+            <div class="sub-hint" id="eduAmtHint"></div>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">자녀 결혼 지원</h3>
+      <div class="field">
+        <div class="radio-group" data-name="weddingType">
+          <label><input type="radio" name="weddingType" value="지원 의사 있음">지원 의사 있음</label>
+          <label><input type="radio" name="weddingType" value="없음">없음</label>
+        </div>
+      </div>
+      <div id="weddingFields">
+        <div class="row">
+          <div class="field"><label>예상 시기 (몇 년 후, ±1)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('weddingWhen',-1)">−</button>
+              <input type="number" id="weddingWhen" value="15">
+              <button class="step-btn" type="button" onclick="step('weddingWhen',1)">+</button>
+              <span class="unit">년 후</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>총액 (만원, ±500)</label>
+            <div class="money-input">
+              <button class="step-btn" type="button" onclick="step('weddingAmt',-500)">−</button>
+              <input type="number" id="weddingAmt" value="0">
+              <button class="step-btn" type="button" onclick="step('weddingAmt',500)">+</button>
+              <span class="unit">만원</span>
+            </div>
+            <div class="sub-hint" id="weddingAmtHint"></div>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">주택 이사·매입 계획</h3>
+      <div class="field">
+        <div class="radio-group" data-name="houseMoveType">
+          <label><input type="radio" name="houseMoveType" value="있음">있음</label>
+          <label><input type="radio" name="houseMoveType" value="없음">없음</label>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field"><label>시기 (몇 년 후, ±1)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('houseMoveWhen',-1)">−</button>
+            <input type="number" id="houseMoveWhen" value="5">
+            <button class="step-btn" type="button" onclick="step('houseMoveWhen',1)">+</button>
+            <span class="unit">년 후</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>추가 자금 필요액 (만원, ±500)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('houseMoveAmt',-500)">−</button>
+            <input type="number" id="houseMoveAmt" value="10000">
+            <button class="step-btn" type="button" onclick="step('houseMoveAmt',500)">+</button>
+            <span class="unit">만원</span>
+          </div>
+          <div class="sub-hint" id="houseMoveAmtHint"></div>
+        </div>
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">자동차 교체</h3>
+      <div class="row">
+        <div class="field"><label>다음 교체 시기 (몇 년 후, ±1)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('carWhen',-1)">−</button>
+            <input type="number" id="carWhen" value="5">
+            <button class="step-btn" type="button" onclick="step('carWhen',1)">+</button>
+            <span class="unit">년 후</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>예상 비용 (만원, ±500)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('carAmt',-500)">−</button>
+            <input type="number" id="carAmt" value="3000">
+            <button class="step-btn" type="button" onclick="step('carAmt',500)">+</button>
+            <span class="unit">만원</span>
+          </div>
+          <div class="sub-hint" id="carAmtHint"></div>
+        </div>
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">부모 의료·요양비 대비</h3>
+      <div class="field">
+        <div class="radio-group" data-name="parentCare">
+          <label><input type="radio" name="parentCare" value="별도 대비">별도 대비</label>
+          <label><input type="radio" name="parentCare" value="부분 대비">부분 대비</label>
+          <label><input type="radio" name="parentCare" value="미대비">미대비</label>
+          <label><input type="radio" name="parentCare" value="해당 없음">해당 없음</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>예상 금액 (만원, ±100)</label>
+        <div class="money-input">
+          <button class="step-btn" type="button" onclick="step('parentCareAmt',-100)">−</button>
+          <input type="number" id="parentCareAmt" value="1000">
+          <button class="step-btn" type="button" onclick="step('parentCareAmt',100)">+</button>
+          <span class="unit">만원</span>
+        </div>
+        <div class="sub-hint" id="parentCareAmtHint"></div>
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">본인·배우자 노년 간병비 대비</h3>
+      <div class="section-help" style="margin:6px 0;">노년기 간병비는 거의 확정된 지출입니다. 자녀가 없거나 가족 케어가 어려운 경우 특히 중요합니다.</div>
+      <div class="field">
+        <div class="radio-group" data-name="selfCare">
+          <label><input type="radio" name="selfCare" value="별도 적립 중">별도 적립 중</label>
+          <label><input type="radio" name="selfCare" value="보험으로 대비">보험으로 대비</label>
+          <label><input type="radio" name="selfCare" value="자산으로 커버">자산으로 커버 예정</label>
+          <label><input type="radio" name="selfCare" value="미대비">미대비</label>
+          <label><input type="radio" name="selfCare" value="미정">미정</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>예상 금액 (만원, ±100)</label>
+        <div class="money-input">
+          <button class="step-btn" type="button" onclick="step('selfCareAmt',-100)">−</button>
+          <input type="number" id="selfCareAmt" value="1000">
+          <button class="step-btn" type="button" onclick="step('selfCareAmt',100)">+</button>
+          <span class="unit">만원</span>
+        </div>
+        <div class="sub-hint" id="selfCareAmtHint"></div>
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">본인 큰 의료비 우려</h3>
+      <div class="field">
+        <div class="radio-group" data-name="medConcern">
+          <label><input type="radio" name="medConcern" value="없음">없음</label>
+          <label><input type="radio" name="medConcern" value="있음">있음</label>
+        </div>
+        <input type="text" id="medConcernNote" placeholder="자유 입력" style="margin-top:6px;">
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">기타 목적 자금</h3>
+      <div id="otherGoalCards"></div>
+      <button class="add-row-btn" type="button" onclick="addOtherGoalRow()">+ 항목 추가</button>
+
+      <div class="nav-buttons">
+        <button class="prev" onclick="goSection(5)">← 이전</button>
+        <button class="next" onclick="goSection(7)">다음 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 7: 보장 자산 -->
+  <div class="section" data-section="7">
+    <div class="card">
+      <h2>⑦ 보장 자산 (보험)</h2>
+      <div class="section-help">보유 중인 보험과 월 보험료를 기록합니다.</div>
+
+      <div class="field">
+        <label>보유 중인 보험 (다중 선택)</label>
+        <div class="check-group">
+          <label><input type="checkbox" name="insTypes" value="실손">실손</label>
+          <label><input type="checkbox" name="insTypes" value="암보험">암보험</label>
+          <label><input type="checkbox" name="insTypes" value="3대중대질병">3대중대질병</label>
+          <label><input type="checkbox" name="insTypes" value="사망보험">사망보험</label>
+          <label><input type="checkbox" name="insTypes" value="종신보험">종신보험</label>
+          <label><input type="checkbox" name="insTypes" value="운전자">운전자</label>
+          <label><input type="checkbox" name="insTypes" value="화재">화재</label>
+          <label><input type="checkbox" name="insTypes" value="기타">기타</label>
+          <label><input type="checkbox" name="insTypes" value="없음">없음</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>회사 단체보험 보유 여부</label>
+        <div class="radio-group" data-name="insGroup">
+          <label><input type="radio" name="insGroup" value="있음">있음</label>
+          <label><input type="radio" name="insGroup" value="없음">없음</label>
+          <label><input type="radio" name="insGroup" value="잘 모름">잘 모름</label>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>월 보험료 합계 (±5)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('insMonthly',-5)">−</button>
+            <input type="number" id="insMonthly" value="0">
+            <button class="step-btn" type="button" onclick="step('insMonthly',5)">+</button>
+            <span class="unit">만원</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>주요 보장 한도 (선택)</label>
+          <input type="text" id="insLimits" placeholder="예: 암 진단비 3천만원 등">
+        </div>
+      </div>
+
+      <div class="summary-box" id="insVerify"></div>
+
+      <div class="nav-buttons">
+        <button class="prev" onclick="goSection(6)">← 이전</button>
+        <button class="next" onclick="goSection(8)">다음 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 8: 목표와 선호 -->
+  <div class="section" data-section="8">
+    <div class="card">
+      <h2>⑧ 목표와 선호</h2>
+      <div class="section-help">은퇴 목표·위험성향·가치관까지 확인합니다.</div>
+
+      <h3 style="font-size:16px;">8-1. 은퇴 목표</h3>
+      <div class="row">
+        <div class="field">
+          <label>희망 은퇴 연령 (±1)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('retireAge',-1)">−</button>
+            <input type="number" id="retireAge" value="60">
+            <button class="step-btn" type="button" onclick="step('retireAge',1)">+</button>
+            <span class="unit">세</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>희망 은퇴 후 월 생활비 (±10)</label>
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="step('retireExpense',-10)">−</button>
+            <input type="number" id="retireExpense" value="250">
+            <button class="step-btn" type="button" onclick="step('retireExpense',10)">+</button>
+            <span class="unit">만원/월</span>
+          </div>
+          <div class="hint">기본값은 현재 월 지출로 자동 채워집니다 (현재가치 기준).</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>거주 주택의 노후 활용</label>
+        <div class="radio-group" data-name="houseUse">
+          <label><input type="radio" name="houseUse" value="계속 거주">계속 거주</label>
+          <label><input type="radio" name="houseUse" value="다운사이징">다운사이징</label>
+          <label><input type="radio" name="houseUse" value="주택연금">주택연금</label>
+          <label><input type="radio" name="houseUse" value="매각 후 임대">매각 후 임대</label>
+          <label><input type="radio" name="houseUse" value="미정">미정</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>자녀·가족 상속 의사</label>
+        <div class="radio-group" data-name="inherit">
+          <label><input type="radio" name="inherit" value="적극적으로">적극적으로 남기고 싶음</label>
+          <label><input type="radio" name="inherit" value="자연스럽게">자연스럽게 남는 만큼만</label>
+          <label><input type="radio" name="inherit" value="다 쓰고">다 쓰고 갈 계획</label>
+          <label><input type="radio" name="inherit" value="자녀 없음">자녀 없음</label>
+        </div>
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">8-2. 위험 감수 성향 (1~5)</h3>
+      <div class="hint">
+        1점: 원금 손실이 매우 두렵다. &nbsp;|&nbsp; 5점: 더 큰 수익을 위해 손실을 감수할 수 있다.
+      </div>
+      <div class="field">
+        <div class="radio-group" data-name="riskScore">
+          <label><input type="radio" name="riskScore" value="1">1</label>
+          <label><input type="radio" name="riskScore" value="2">2</label>
+          <label><input type="radio" name="riskScore" value="3">3</label>
+          <label><input type="radio" name="riskScore" value="4">4</label>
+          <label><input type="radio" name="riskScore" value="5">5</label>
+        </div>
+      </div>
+      <button class="collapse-btn" type="button" onclick="toggleCollapse('riskQuiz')">▼ 진단해보기 (5문항)</button>
+      <div class="collapse-body" id="riskQuiz">
+        <div class="field"><label>1) 투자 경험</label>
+          <div class="radio-group" data-name="rq1">
+            <label><input type="radio" name="rq1" value="1">없음</label>
+            <label><input type="radio" name="rq1" value="2">예적금만</label>
+            <label><input type="radio" name="rq1" value="3">펀드·ETF</label>
+            <label><input type="radio" name="rq1" value="4">개별 주식</label>
+            <label><input type="radio" name="rq1" value="5">파생·해외</label>
+          </div>
+        </div>
+        <div class="field"><label>2) 손실 감수 가능 범위</label>
+          <div class="radio-group" data-name="rq2">
+            <label><input type="radio" name="rq2" value="1">원금 손실 불가</label>
+            <label><input type="radio" name="rq2" value="2">5% 이내</label>
+            <label><input type="radio" name="rq2" value="3">10~20%</label>
+            <label><input type="radio" name="rq2" value="4">30%까지</label>
+            <label><input type="radio" name="rq2" value="5">그 이상</label>
+          </div>
+        </div>
+        <div class="field"><label>3) 투자 목적</label>
+          <div class="radio-group" data-name="rq3">
+            <label><input type="radio" name="rq3" value="1">원금 보존</label>
+            <label><input type="radio" name="rq3" value="2">물가 방어</label>
+            <label><input type="radio" name="rq3" value="3">안정적 수익</label>
+            <label><input type="radio" name="rq3" value="4">적극 증식</label>
+            <label><input type="radio" name="rq3" value="5">고수익 추구</label>
+          </div>
+        </div>
+        <div class="field"><label>4) 시장 30% 하락 시 행동</label>
+          <div class="radio-group" data-name="rq4">
+            <label><input type="radio" name="rq4" value="1">즉시 매도</label>
+            <label><input type="radio" name="rq4" value="2">일부 매도</label>
+            <label><input type="radio" name="rq4" value="3">유지</label>
+            <label><input type="radio" name="rq4" value="4">일부 추가</label>
+            <label><input type="radio" name="rq4" value="5">추가 매수</label>
+          </div>
+        </div>
+        <div class="field"><label>5) 투자 기간 (자금을 묶어둘 수 있는 기간)</label>
+          <div class="radio-group" data-name="rq5">
+            <label><input type="radio" name="rq5" value="1">1년 이내</label>
+            <label><input type="radio" name="rq5" value="2">1~3년</label>
+            <label><input type="radio" name="rq5" value="3">3~5년</label>
+            <label><input type="radio" name="rq5" value="4">5~10년</label>
+            <label><input type="radio" name="rq5" value="5">10년+</label>
+          </div>
+        </div>
+        <button class="add-row-btn" type="button" onclick="applyRiskQuiz()">점수 합산 후 위에 반영</button>
+        <div id="riskQuizResult" style="margin-top:8px; font-size:14px;"></div>
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">8-3. 투자 스타일 선호 (다중 선택)</h3>
+      <div class="check-group">
+        <label><input type="checkbox" name="invStyle" value="안전성 우선">안전성 우선</label>
+        <label><input type="checkbox" name="invStyle" value="가치 보존">가치 보존</label>
+        <label><input type="checkbox" name="invStyle" value="인컴">인컴(배당·이자)</label>
+        <label><input type="checkbox" name="invStyle" value="균형">균형</label>
+        <label><input type="checkbox" name="invStyle" value="성장">성장</label>
+        <label><input type="checkbox" name="invStyle" value="적극적">적극적 수익 추구</label>
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">8-4. 인생 우선순위 (최대 3개)</h3>
+      <div class="check-group" id="priorityGroup">
+        <label><input type="checkbox" name="priority" value="가족 부양">가족 부양</label>
+        <label><input type="checkbox" name="priority" value="자유로운 일·시간">자유로운 일·시간</label>
+        <label><input type="checkbox" name="priority" value="안정과 평온">안정과 평온</label>
+        <label><input type="checkbox" name="priority" value="자기계발·도전">자기계발·도전</label>
+        <label><input type="checkbox" name="priority" value="사회 기여·헌신">사회 기여·헌신</label>
+        <label><input type="checkbox" name="priority" value="여행·취미">여행·취미</label>
+        <label><input type="checkbox" name="priority" value="명예·인정">명예·인정</label>
+        <label><input type="checkbox" name="priority" value="건강·웰빙">건강·웰빙</label>
+        <label><input type="checkbox" name="priority" value="자녀 성공">자녀 성공</label>
+      </div>
+
+      <h3 style="font-size:16px; margin-top:16px;">8-5. 자유 입력</h3>
+      <div class="field">
+        <label>현재 가장 큰 재무적 걱정</label>
+        <textarea id="freeConcern"></textarea>
+      </div>
+      <div class="field">
+        <label>특별히 묻고 싶은 것</label>
+        <textarea id="freeQuestion"></textarea>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="prev" onclick="goSection(7)">← 이전</button>
+        <button class="next" onclick="goSection(9)">진단 결과 보기 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 9: 결과 -->
+  <div class="section" data-section="9">
+    <div class="card">
+      <h2>📋 자가 진단 결과</h2>
+
+      <h3 style="font-size:17px; margin-top:8px;">A. 재무비율 진단</h3>
+      <div class="ratio-grid" id="ratioGrid"></div>
+
+      <h3 style="font-size:17px; margin-top:16px;">B. 자가검증 메시지</h3>
+      <div class="summary-box" id="finalVerify"></div>
+
+      <h3 style="font-size:17px; margin-top:16px;">C. 진단 요약</h3>
+      <div class="summary-box" id="finalDiagnosis"></div>
+    </div>
+
+    <div class="card">
+      <h2>🤖 AI 챗봇용 프롬프트</h2>
+      <div class="section-help">
+        아래 프롬프트를 복사해서 ChatGPT·Claude·Gemini에 붙여넣으면 더 깊은 분석을 받을 수 있습니다.
+      </div>
+      <div class="prompt-box" id="promptBox">
+        <button class="copy-btn" onclick="copyPrompt()">📋 복사</button>
+        <div id="promptText"></div>
+      </div>
+      <div class="ai-links">
+        <a href="https://claude.ai/new" target="_blank">→ Claude 열기</a>
+        <a href="https://chatgpt.com" target="_blank">→ ChatGPT 열기</a>
+        <a href="https://gemini.google.com" target="_blank">→ Gemini 열기</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📁 저장 & 관리</h2>
+      <div class="action-bar">
+        <button class="btn-primary" onclick="exportPDF()">📄 PDF 리포트 저장</button>
+        <button class="btn-primary" onclick="exportMD()">📝 마크다운(.md) 저장</button>
+        <button class="btn-secondary" onclick="exportJSON()">💾 데이터 내보내기 (JSON)</button>
+        <button class="btn-secondary" onclick="importJSON()">📂 데이터 불러오기</button>
+      </div>
+      <input type="file" id="jsonFile" accept="application/json" style="display:none;" onchange="handleJSONImport(event)">
+
+      <div class="nav-buttons">
+        <button class="prev" onclick="goSection(8)">← 이전</button>
+        <div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 인쇄용 리포트 컨테이너 (화면에는 표시 안됨, 인쇄 시에만 노출) -->
+<div id="printReport"></div>
+
+<script>
+const SECTIONS = ["인트로", "기본", "자산", "부채", "현금흐름", "노후소득", "목적자금", "보장", "목표", "결과"];
+const EXPENSE_ITEMS = [
+  ["식비·외식비", "exFood"],
+  ["주거 관리비", "exHousing"],
+  ["생활용품비", "exLiving"],
+  ["교육비", "exEdu"],
+  ["의료비", "exMedical"],
+  ["교통비", "exTransport"],
+  ["통신비", "exComm"],
+  ["여가·문화비", "exLeisure"],
+  ["의류·미용비", "exClothing"],
+  ["용돈(본인·배우자·자녀)", "exAllowance"],
+  ["보장성 보험료", "exInsurance"],
+  ["부채 상환액", "exDebtPay"],
+  ["기타 지출", "exMisc"],
+];
+
+const CATEGORIES = ["현금성 자산", "투자 자산", "부동산 자산", "연금 자산", "기타"];
+const ACCOUNTS_BY_CATEGORY = {
+  "현금성 자산": ["일반 예적금", "CMA", "주택청약통장", "기타"],
+  "투자 자산": ["위탁계좌", "ISA", "기타"],
+  "부동산 자산": ["거주 부동산", "투자 부동산"],
+  "연금 자산": ["연금저축", "IRP", "기타"],
+  "기타": ["기타"]
+};
+
+const EOK_HINTS = {
+  mortgageBalance: "mortgageBalanceHint",
+  creditBalance: "creditBalanceHint",
+  severanceAmt: "severanceAmtHint",
+  eduAmt: "eduAmtHint",
+  weddingAmt: "weddingAmtHint",
+  houseMoveAmt: "houseMoveAmtHint",
+  carAmt: "carAmtHint",
+  parentCareAmt: "parentCareAmtHint",
+  selfCareAmt: "selfCareAmtHint",
+};
+
+const STORAGE_KEY = "selfFinDiagV5";
+
+let currentSection = 0;
+let assets = [];
+let otherGoals = [];
+let expDetailMode = false;
+let exIrrDetailMode = false;
+
+document.addEventListener("DOMContentLoaded", () => {
+  buildNavTabs();
+  buildExpenseRows();
+  load();
+  if (assets.length === 0) { addAssetRow(); addAssetRow(); }
+  renderAssetCards();
+  renderOtherGoalCards();
+  bindAutoSave();
+  applyInputModes();
+  attachSelectOnFocus();
+  updateAll();
+  goSection(0);
+});
+
+function applyInputModes() {
+  document.querySelectorAll("input[type='number']").forEach(el => {
+    const stepAttr = parseFloat(el.getAttribute("step") || "1");
+    el.setAttribute("inputmode", stepAttr < 1 ? "decimal" : "numeric");
+    if (stepAttr >= 1) el.setAttribute("pattern", "[0-9]*");
+  });
+}
+
+function attachSelectOnFocus() {
+  // 이벤트 위임: 모든 number/text input을 focus 시 전체 선택 (디폴트값 자동 덮어쓰기 효과)
+  document.addEventListener("focusin", e => {
+    const t = e.target;
+    if (t.matches && t.matches("input[type='number'], input[type='text']")) {
+      setTimeout(() => {
+        try { t.select(); } catch (_) {}
+      }, 1);
+    }
+  });
+}
+
+function buildNavTabs() {
+  const nav = document.getElementById("navTabs");
+  SECTIONS.forEach((label, i) => {
+    const b = document.createElement("button");
+    b.textContent = `${i}. ${label}`;
+    b.onclick = () => goSection(i);
+    b.dataset.idx = i;
+    nav.appendChild(b);
+  });
+}
+
+function buildExpenseRows() {
+  const container = document.getElementById("expenseRows");
+  EXPENSE_ITEMS.forEach(([label, id]) => {
+    const div = document.createElement("div");
+    div.className = "field";
+    div.style.flex = "1 1 220px";
+    div.innerHTML = `
+      <label>${label}</label>
+      <div class="money-input">
+        <button class="step-btn" type="button" onclick="step('${id}',-5)">−</button>
+        <input type="number" id="${id}" value="0">
+        <button class="step-btn" type="button" onclick="step('${id}',5)">+</button>
+        <span class="unit">만원</span>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function goSection(idx) {
+  if (idx < 0 || idx >= SECTIONS.length) return;
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelector(`.section[data-section="${idx}"]`).classList.add("active");
+  currentSection = idx;
+  document.querySelectorAll("#navTabs button").forEach(b => {
+    b.classList.toggle("active", parseInt(b.dataset.idx) === idx);
+  });
+  document.getElementById("progressFill").style.width =
+    `${(idx / (SECTIONS.length - 1)) * 100}%`;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (idx === 8) prefillRetireExpense();
+  if (idx === 9) renderResult();
+}
+
+function prefillRetireExpense() {
+  const el = document.getElementById("retireExpense");
+  if (!el.dataset.touched) {
+    const cf = calcCashflow();
+    const v = Math.round(cf.expTotal);
+    if (v > 0) el.value = v;
+  }
+}
+
+function step(id, delta) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const v = parseFloat(el.value) || 0;
+  let next = Math.max(0, v + delta);
+  if (Math.abs(delta) < 1) next = Math.round(next * 10) / 10;
+  else next = Math.round(next);
+  el.value = next;
+  if (id === "retireExpense") el.dataset.touched = "1";
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+/* ===== 자산 카드 ===== */
+function addAssetRow() {
+  assets.push({ category: "", account: "", value: "", monthly: "", notes: {} });
+  renderAssetCards();
+  saveDebounced();
+}
+function delAssetRow(i) {
+  assets.splice(i, 1);
+  renderAssetCards();
+  saveDebounced();
+  updateAll();
+}
+
+function renderAssetCards() {
+  const c = document.getElementById("assetCards");
+  c.innerHTML = "";
+  assets.forEach((row, i) => {
+    const allowedAccounts = ACCOUNTS_BY_CATEGORY[row.category] || [];
+    // 구분 변경 시 계좌가 허용목록 밖이면 초기화
+    if (row.account && !allowedAccounts.includes(row.account)) row.account = "";
+    const div = document.createElement("div");
+    div.className = "asset-card";
+    div.innerHTML = `
+      <div class="asset-row">
+        <label>구분</label>
+        <div class="ctrl">
+          <select onchange="updateAsset(${i},'category',this.value)">
+            <option value="">선택</option>
+            ${CATEGORIES.map(c => `<option value="${c}" ${c===row.category?'selected':''}>${c}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div class="asset-row">
+        <label>계좌 종류</label>
+        <div class="ctrl">
+          <select onchange="updateAsset(${i},'account',this.value)" ${row.category?'':'disabled'}>
+            <option value="">${row.category ? "선택" : "먼저 구분을 선택하세요"}</option>
+            ${allowedAccounts.map(a => `<option value="${a}" ${a===row.account?'selected':''}>${a}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div class="asset-row">
+        <label>평가금액</label>
+        <div class="ctrl">
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="stepAsset(${i},'value',-100)">−</button>
+            <input type="number" inputmode="numeric" pattern="[0-9]*" value="${row.value || ''}" placeholder="0"
+              oninput="updateAsset(${i},'value',this.value)">
+            <button class="step-btn" type="button" onclick="stepAsset(${i},'value',100)">+</button>
+            <span class="unit">만원</span>
+          </div>
+          ${parseFloat(row.value)>=10000?`<div class="sub-hint">≈ ${toEok(parseFloat(row.value))}</div>`:''}
+        </div>
+      </div>
+      <div class="asset-row">
+        <label>월 납입금</label>
+        <div class="ctrl">
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="stepAsset(${i},'monthly',-5)">−</button>
+            <input type="number" inputmode="numeric" pattern="[0-9]*" value="${row.monthly || ''}" placeholder="0"
+              oninput="updateAsset(${i},'monthly',this.value)">
+            <button class="step-btn" type="button" onclick="stepAsset(${i},'monthly',5)">+</button>
+            <span class="unit">만원</span>
+          </div>
+        </div>
+      </div>
+      ${row.account ? `<div class="notes-box">
+        <div class="note-title">추가 옵션 — ${row.account}</div>
+        ${renderAssetNotes(i, row)}
+      </div>` : ''}
+      <div style="text-align:right; margin-top:8px;">
+        <button class="del-btn" type="button" onclick="delAssetRow(${i})">삭제</button>
+      </div>
+    `;
+    c.appendChild(div);
+  });
+  updateAssetSummary();
+}
+
+function toEok(manwon) {
+  if (manwon < 10000) return `${fmt(manwon)}만원`;
+  const eok = manwon / 10000;
+  if (eok >= 10) return `${eok.toFixed(1)}억원`;
+  return `${eok.toFixed(2)}억원`;
+}
+
+function renderAssetNotes(i, row) {
+  const acc = row.account;
+  const n = row.notes || {};
+  // 숫자 입력 (정수)
+  const numFld = (key, label) => `
+    <div class="field" style="margin-bottom:8px;">
+      <label style="font-size:12px;">${label}</label>
+      <input type="number" inputmode="numeric" pattern="[0-9]*" value="${n[key]||''}"
+        oninput="updateAssetNote(${i},'${key}',this.value)" style="font-size:13px; padding:6px 8px;">
+    </div>`;
+  // 숫자 입력 (소수, 금리)
+  const numFldDec = (key, label) => `
+    <div class="field" style="margin-bottom:8px;">
+      <label style="font-size:12px;">${label}</label>
+      <input type="number" inputmode="decimal" step="0.1" value="${n[key]||''}"
+        oninput="updateAssetNote(${i},'${key}',this.value)" style="font-size:13px; padding:6px 8px;">
+    </div>`;
+  const txtFld = (key, label, placeholder="") => `
+    <div class="field" style="margin-bottom:8px;">
+      <label style="font-size:12px;">${label}</label>
+      <input type="text" value="${n[key]||''}" placeholder="${placeholder}"
+        oninput="updateAssetNote(${i},'${key}',this.value)" style="font-size:13px; padding:6px 8px;">
+    </div>`;
+  const sel = (key, label, opts) => `
+    <div class="field" style="margin-bottom:8px;">
+      <label style="font-size:12px;">${label}</label>
+      <select onchange="updateAssetNote(${i},'${key}',this.value)" style="font-size:13px;">
+        <option value="">선택</option>
+        ${opts.map(o => `<option value="${o}" ${n[key]===o?'selected':''}>${o}</option>`).join("")}
+      </select>
+    </div>`;
+  const memoFld = txtFld("memo", "비고 (자금 목적 등 자유 입력)", "예: 자녀 학자금 / 비상금");
+
+  let html = "";
+  if (acc === "일반 예적금") {
+    html = numFld("term","만기 남은 기간(년)") + numFldDec("rate","금리(%)") + numFld("matAmt","만기 시 예상금액(만원)") + memoFld;
+  } else if (acc === "CMA") {
+    html = txtFld("subType","운용자산 (RP/MMF/발행어음 등)") + memoFld;
+  } else if (acc === "주택청약통장") {
+    html = numFld("subYears","납입 연수") + numFld("subCount","납입 회차") +
+           sel("subRank","1순위 여부",["1순위","미달","잘 모름"]) + memoFld;
+  } else if (acc === "위탁계좌") {
+    html = sel("opStyle","운용 방식",["직접운용","패시브","혼합"]) +
+           sel("asset","자산 성격",["성장","가치","배당","혼합"]) + memoFld;
+  } else if (acc === "ISA") {
+    html = numFld("term","만기 남은 기간(년)") +
+           sel("isaType","유형",["일반형","서민형"]) +
+           sel("asset","운용자산 성격",["성장","가치","배당","혼합"]) + memoFld;
+  } else if (acc === "연금저축" || acc === "IRP") {
+    html = sel("opStyle","운용 방식",["간접운용","직접운용","방치"]) + memoFld;
+  } else if (acc === "거주 부동산") {
+    html = sel("liveType","거주형태",["자가","전세","월세"]) +
+           numFld("deposit","보증금(만원)") +
+           numFld("rent","월세(만원)") +
+           numFld("loan","대출금(만원) — 부채 섹션에 자동 반영") +
+           memoFld;
+  } else if (acc === "투자 부동산") {
+    html = sel("rentFlag","임대여부",["임대중","공실","미정"]) +
+           numFld("rentIncome","월세 수익(만원)") + memoFld;
+  } else if (acc === "기타") {
+    html = memoFld;
+  }
+  return html || `<span style="font-size:12px; color:#999;">추가 입력 항목이 없습니다.</span>`;
+}
+
+function updateAsset(i, key, val) {
+  assets[i][key] = val;
+  if (key === "category") {
+    // 구분 변경 시 계좌가 새 구분에 속하지 않으면 초기화
+    const allowed = ACCOUNTS_BY_CATEGORY[val] || [];
+    if (!allowed.includes(assets[i].account)) assets[i].account = "";
+    renderAssetCards();
+  } else if (key === "account") {
+    renderAssetCards();
+  } else {
+    updateAssetSummary();
+    // 평가금액 변경 시 그 카드의 sub-hint만 업데이트
+    if (key === "value") {
+      const card = document.querySelectorAll('.asset-card')[i];
+      if (card) {
+        const row = card.querySelectorAll('.asset-row')[2];
+        const old = row.querySelector('.sub-hint');
+        if (old) old.remove();
+        const n = parseFloat(val) || 0;
+        if (n >= 10000) {
+          const div = document.createElement('div');
+          div.className = 'sub-hint';
+          div.textContent = `≈ ${toEok(n)}`;
+          row.querySelector('.ctrl').appendChild(div);
+        }
+      }
+    }
+  }
+  saveDebounced();
+  updateAll();
+}
+function updateAssetNote(i, key, val) {
+  assets[i].notes = assets[i].notes || {};
+  assets[i].notes[key] = val;
+  saveDebounced();
+  if (key === "loan") updateAll();  // 부채 섹션 즉시 갱신
+}
+function stepAsset(i, key, delta) {
+  const cur = parseFloat(assets[i][key]) || 0;
+  assets[i][key] = Math.max(0, cur + delta);
+  renderAssetCards();
+  saveDebounced();
+  updateAll();
+}
+
+function updateAssetSummary() {
+  const sumByCat = {};
+  let total = 0, totalMonthly = 0;
+  assets.forEach(r => {
+    const v = parseFloat(r.value) || 0;
+    const m = parseFloat(r.monthly) || 0;
+    total += v; totalMonthly += m;
+    if (r.category) sumByCat[r.category] = (sumByCat[r.category] || 0) + v;
+  });
+  let html = `[자산 합계]\n총자산: ${fmt(total)}만원${total>=10000?` (≈ ${toEok(total)})`:""}   |   월 납입금 합계: ${fmt(totalMonthly)}만원\n`;
+  Object.entries(sumByCat).forEach(([k, v]) => {
+    html += `  · ${k}: ${fmt(v)}만원${v>=10000?` (≈ ${toEok(v)})`:""}\n`;
+  });
+  document.getElementById("assetSummary").innerHTML = `<pre>${html}</pre>`;
+}
+
+/* 거주 부동산 대출금 자동 집계 */
+function getResidenceLoanSum() {
+  let s = 0;
+  assets.forEach(r => {
+    if (r.account === "거주 부동산") s += parseFloat(r.notes?.loan) || 0;
+  });
+  return s;
+}
+
+/* ===== 기타 목적 자금 카드 ===== */
+function addOtherGoalRow() {
+  otherGoals.push({ name: "", when: "", amount: "" });
+  renderOtherGoalCards();
+  saveDebounced();
+}
+function delOtherGoalRow(i) {
+  otherGoals.splice(i, 1);
+  renderOtherGoalCards();
+  saveDebounced();
+}
+function renderOtherGoalCards() {
+  const c = document.getElementById("otherGoalCards");
+  c.innerHTML = "";
+  otherGoals.forEach((r, i) => {
+    const div = document.createElement("div");
+    div.className = "asset-card";
+    div.innerHTML = `
+      <div class="asset-row">
+        <label>내용</label>
+        <div class="ctrl">
+          <input type="text" value="${r.name||''}" oninput="otherGoals[${i}].name=this.value; saveDebounced();" placeholder="예: 창업 자금">
+        </div>
+      </div>
+      <div class="asset-row">
+        <label>시기 (년 후)</label>
+        <div class="ctrl">
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="otherGoals[${i}].when=Math.max(0,(parseFloat(otherGoals[${i}].when)||0)-1); renderOtherGoalCards(); saveDebounced();">−</button>
+            <input type="number" inputmode="numeric" pattern="[0-9]*" value="${r.when||''}" oninput="otherGoals[${i}].when=this.value; saveDebounced();" placeholder="5">
+            <button class="step-btn" type="button" onclick="otherGoals[${i}].when=(parseFloat(otherGoals[${i}].when)||0)+1; renderOtherGoalCards(); saveDebounced();">+</button>
+            <span class="unit">년 후</span>
+          </div>
+        </div>
+      </div>
+      <div class="asset-row">
+        <label>금액</label>
+        <div class="ctrl">
+          <div class="money-input">
+            <button class="step-btn" type="button" onclick="otherGoals[${i}].amount=Math.max(0,(parseFloat(otherGoals[${i}].amount)||0)-500); renderOtherGoalCards(); saveDebounced();">−</button>
+            <input type="number" inputmode="numeric" pattern="[0-9]*" value="${r.amount||''}" oninput="otherGoals[${i}].amount=this.value; saveDebounced();" placeholder="1000">
+            <button class="step-btn" type="button" onclick="otherGoals[${i}].amount=(parseFloat(otherGoals[${i}].amount)||0)+500; renderOtherGoalCards(); saveDebounced();">+</button>
+            <span class="unit">만원</span>
+          </div>
+          ${parseFloat(r.amount)>=10000?`<div class="sub-hint">≈ ${toEok(parseFloat(r.amount))}</div>`:""}
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <button class="del-btn" type="button" onclick="delOtherGoalRow(${i})">삭제</button>
+      </div>
+    `;
+    c.appendChild(div);
+  });
+}
+
+/* ===== 토글 ===== */
+function toggleExpDetail() {
+  expDetailMode = !expDetailMode;
+  document.getElementById("expSimple").style.display = expDetailMode ? "none" : "block";
+  document.getElementById("expDetail").style.display = expDetailMode ? "block" : "none";
+  document.getElementById("exTotal").disabled = expDetailMode;
+  document.getElementById("expDetailBtn").classList.toggle("active", expDetailMode);
+  document.getElementById("expDetailBtn").textContent = expDetailMode ? "간단입력" : "상세입력";
+  saveDebounced();
+  updateAll();
+}
+function toggleExIrrDetail() {
+  exIrrDetailMode = !exIrrDetailMode;
+  document.getElementById("exIrrSimple").style.display = exIrrDetailMode ? "none" : "block";
+  document.getElementById("exIrrDetail").style.display = exIrrDetailMode ? "block" : "none";
+  document.getElementById("exIrrTotal").disabled = exIrrDetailMode;
+  document.getElementById("exIrrDetailBtn").classList.toggle("active", exIrrDetailMode);
+  document.getElementById("exIrrDetailBtn").textContent = exIrrDetailMode ? "간단입력" : "상세입력";
+  saveDebounced();
+  updateAll();
+}
+
+/* ===== 조건부 ===== */
+function attachConditional() {
+  document.querySelectorAll('input[name="spouse"]').forEach(r => {
+    r.addEventListener("change", () => {
+      const show = document.querySelector('input[name="spouse"]:checked')?.value === "있음";
+      document.getElementById("spouseFields").classList.toggle("show", show);
+    });
+  });
+  document.querySelectorAll('input[name="children"]').forEach(r => {
+    r.addEventListener("change", () => {
+      const v = document.querySelector('input[name="children"]:checked')?.value;
+      document.getElementById("childAges").classList.toggle("show", v && v !== "0");
+    });
+  });
+  const debtMap = {
+    mortgageHas: "mortgageFields", creditHas: "creditFields",
+    cardHas: "cardFields", privateHas: "privateFields"
+  };
+  Object.entries(debtMap).forEach(([name, target]) => {
+    document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+      r.addEventListener("change", () => {
+        const has = document.querySelector(`input[name="${name}"]:checked`)?.value === "있음";
+        document.getElementById(target).style.display = has ? "block" : "none";
+      });
+    });
+  });
+  document.querySelectorAll('input[name="eduType"]').forEach(r => {
+    r.addEventListener("change", applyEduDisable);
+  });
+}
+
+function applyEduDisable() {
+  const edu = document.querySelector('input[name="eduType"]:checked')?.value;
+  const disable = (edu === "해당 없음");
+  ["eduWhen","eduAmt"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = disable;
+  });
+  document.querySelectorAll('input[name="weddingType"]').forEach(r => r.disabled = disable);
+  ["weddingWhen","weddingAmt"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = disable;
+  });
+  if (disable) {
+    const w = document.querySelector('input[name="weddingType"][value="없음"]');
+    if (w) w.checked = true;
+  }
+  document.getElementById("eduFields").style.opacity = disable ? 0.5 : 1;
+  document.getElementById("weddingFields").style.opacity = disable ? 0.5 : 1;
+}
+
+function toggleCollapse(id) {
+  document.getElementById(id).classList.toggle("open");
+}
+
+function applyRiskQuiz() {
+  let sum = 0, n = 0;
+  for (let i = 1; i <= 5; i++) {
+    const v = document.querySelector(`input[name="rq${i}"]:checked`)?.value;
+    if (v) { sum += parseInt(v); n++; }
+  }
+  if (n === 0) {
+    document.getElementById("riskQuizResult").textContent = "답한 문항이 없습니다.";
+    return;
+  }
+  const score = Math.round(sum / n);
+  document.querySelector(`input[name="riskScore"][value="${score}"]`).checked = true;
+  document.getElementById("riskQuizResult").textContent =
+    `평균 ${(sum/n).toFixed(1)}점 → ${score}점으로 위에 반영했습니다.`;
+  save();
+}
+
+function calcSeverance() {
+  const pay = parseFloat(document.getElementById("severancePay").value) || 0;
+  const years = parseFloat(document.getElementById("severanceYears").value) || 0;
+  const result = Math.round(pay * years);
+  document.getElementById("severanceAmt").value = result;
+  document.getElementById("severanceAmt").dispatchEvent(new Event("input", { bubbles: true }));
+  save();
+}
+
+/* ===== 저장 ===== */
+let saveTimer = null;
+function saveDebounced() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { save(); updateAll(); }, 200);
+}
+
+function bindAutoSave() {
+  document.querySelectorAll("input, select, textarea").forEach(el => {
+    el.addEventListener("input", saveDebounced);
+    el.addEventListener("change", saveDebounced);
+  });
+  attachConditional();
+  document.getElementById("retireExpense").addEventListener("input", function() { this.dataset.touched = "1"; });
+  document.querySelectorAll('#priorityGroup input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener("change", () => {
+      const checked = document.querySelectorAll('#priorityGroup input:checked');
+      if (checked.length > 3) cb.checked = false;
+    });
+  });
+}
+
+function gatherFormData() {
+  const data = { _v: 5, assets, otherGoals, expDetailMode, exIrrDetailMode, fields: {}, radios: {}, checks: {} };
+  document.querySelectorAll("input[type='text'], input[type='number'], textarea").forEach(el => {
+    if (el.id) data.fields[el.id] = el.value;
+  });
+  document.querySelectorAll("input[type='radio']").forEach(el => {
+    if (el.checked) data.radios[el.name] = el.value;
+  });
+  document.querySelectorAll("input[type='checkbox']").forEach(el => {
+    if (!data.checks[el.name]) data.checks[el.name] = [];
+    if (el.checked) data.checks[el.name].push(el.value);
+  });
+  return data;
+}
+
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(gatherFormData())); }
+  catch (e) { console.warn(e); }
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.assets) assets = data.assets;
+    if (data.otherGoals) otherGoals = data.otherGoals;
+    if (data.expDetailMode) expDetailMode = true;
+    if (data.exIrrDetailMode) exIrrDetailMode = true;
+    Object.entries(data.fields || {}).forEach(([id, v]) => {
+      const el = document.getElementById(id);
+      if (el) el.value = v;
+    });
+    Object.entries(data.radios || {}).forEach(([name, v]) => {
+      const el = document.querySelector(`input[name="${name}"][value="${v}"]`);
+      if (el) el.checked = true;
+    });
+    Object.entries(data.checks || {}).forEach(([name, arr]) => {
+      arr.forEach(v => {
+        const el = document.querySelector(`input[name="${name}"][value="${v}"]`);
+        if (el) el.checked = true;
+      });
+    });
+    setTimeout(() => {
+      document.querySelectorAll('input[type="radio"]:checked').forEach(r => {
+        r.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      if (expDetailMode) {
+        document.getElementById("expSimple").style.display = "none";
+        document.getElementById("expDetail").style.display = "block";
+        document.getElementById("exTotal").disabled = true;
+        document.getElementById("expDetailBtn").classList.add("active");
+        document.getElementById("expDetailBtn").textContent = "간단입력";
+      }
+      if (exIrrDetailMode) {
+        document.getElementById("exIrrSimple").style.display = "none";
+        document.getElementById("exIrrDetail").style.display = "block";
+        document.getElementById("exIrrTotal").disabled = true;
+        document.getElementById("exIrrDetailBtn").classList.add("active");
+        document.getElementById("exIrrDetailBtn").textContent = "간단입력";
+      }
+      applyEduDisable();
+    }, 0);
+  } catch (e) { console.warn(e); }
+}
+
+/* ===== 계산 ===== */
+function num(id) { return parseFloat(document.getElementById(id)?.value) || 0; }
+
+function calcCashflow() {
+  const incRegular = num("incSelf") + num("incSpouse") + num("incOther");
+  const irregYr = num("bonusIncentive") + num("bonusHoliday") + num("bonusOtherAmt");
+  const incIrregMonthly = irregYr / 12;
+  const incTotal = incRegular + incIrregMonthly;
+
+  let expRegular = 0;
+  if (expDetailMode) EXPENSE_ITEMS.forEach(([_, id]) => { expRegular += num(id); });
+  else expRegular = num("exTotal");
+
+  let exIrregYr = 0;
+  if (exIrrDetailMode) {
+    exIrregYr = num("exCarIns") + num("exTax") + num("exHoliday") + num("exTrip") + num("exHealth") + num("exOtherAmt");
+  } else exIrregYr = num("exIrrTotal");
+
+  const exIrregMonthly = exIrregYr / 12;
+  const expTotal = expRegular + exIrregMonthly;
+  const savingsMonthly = num("savingsMonthly");
+  const surplus = incTotal - expTotal - savingsMonthly;
+  let assetMonthlySum = 0;
+  assets.forEach(r => assetMonthlySum += (parseFloat(r.monthly) || 0));
+
+  return { incRegular, incIrregMonthly, incTotal, expRegular, exIrregMonthly, expTotal,
+    savingsMonthly, surplus, assetMonthlySum, irregYr, exIrregYr };
+}
+
+function updateAll() {
+  Object.entries(EOK_HINTS).forEach(([id, hintId]) => {
+    const v = num(id);
+    const hint = document.getElementById(hintId);
+    if (hint) hint.textContent = v >= 10000 ? `≈ ${toEok(v)}` : (v > 0 ? `${fmt(v)}만원` : "");
+  });
+
+  const cf = calcCashflow();
+
+  document.getElementById("incomeSummary").innerHTML =
+    `<pre>월 환산 비정기 수입: 약 ${fmt(cf.incIrregMonthly)}만원\n월 총수입(정기+비정기): ${fmt(cf.incTotal)}만원</pre>`;
+
+  const expSum = document.getElementById("expenseSummary");
+  if (expDetailMode) {
+    expSum.style.display = "block";
+    expSum.innerHTML = `<pre>월 정기 지출 합계 (상세): ${fmt(cf.expRegular)}만원</pre>`;
+  } else {
+    expSum.style.display = "none";
+    expSum.innerHTML = "";
+  }
+
+  if (exIrrDetailMode) {
+    document.getElementById("exIrregularSummary").innerHTML =
+      `<pre>연 비정기 지출 합계 (상세): ${fmt(cf.exIrregYr)}만원/년 (월환산 ${fmt(cf.exIrregMonthly)}만원)</pre>`;
+  } else {
+    document.getElementById("exIrregularSummary").innerHTML =
+      `<pre>월 환산 비정기 지출: 약 ${fmt(cf.exIrregMonthly)}만원</pre>`;
+  }
+
+  // 자가검증
+  const diff = Math.abs(cf.assetMonthlySum - cf.savingsMonthly);
+  const savingMatch = diff < 0.01;
+  const surplusFlag = Math.abs(cf.surplus) > 0.5;
+  const box = document.getElementById("cashflowVerify");
+  const hasIssue = !savingMatch || surplusFlag;
+  box.className = "summary-box" + (hasIssue ? " warn" : "");
+  let warnMsg = "";
+  if (!savingMatch) warnMsg += `⚠ 자산 섹션과 지출 섹션의 저축액이 일치하지 않습니다. (차이 ${fmt(diff)}만원)\n`;
+  if (surplusFlag) {
+    if (cf.surplus > 0) warnMsg += `⚠ 월 잉여가 ${fmt(cf.surplus)}만원입니다. <b>파악되지 않은 지출이 있을 수 있습니다.</b>\n`;
+    else warnMsg += `⚠ 월 잉여가 ${fmt(cf.surplus)}만원(음수)으로 구조적 적자입니다.\n`;
+  }
+  box.innerHTML =
+    `<pre>[월 단위]\n수입 합계: ${fmt(cf.incTotal)}만원 (정기 ${fmt(cf.incRegular)} + 비정기 월환산 ${fmt(cf.incIrregMonthly)})\n` +
+    `지출 합계: ${fmt(cf.expTotal)}만원 (정기 ${fmt(cf.expRegular)} + 비정기 월환산 ${fmt(cf.exIrregMonthly)})\n` +
+    `정기 저축액: ${fmt(cf.savingsMonthly)}만원\n월 잉여(수입−지출−저축): ${fmt(cf.surplus)}만원\n─────\n` +
+    `자산 섹션 월 납입금 합계: ${fmt(cf.assetMonthlySum)}만원\n지출 섹션 정기 저축액   : ${fmt(cf.savingsMonthly)}만원\n` +
+    `[저축액: ${savingMatch ? "일치 ✅" : `불일치 ⚠️`}]</pre>` +
+    (warnMsg ? `<div style="margin-top:8px; color:#c05621;">${warnMsg.replace(/\n/g,"<br>")}</div>` : "");
+
+  // 거주 부동산 대출금 자동 집계 → 부채 섹션
+  const resLoan = getResidenceLoanSum();
+  const autoBox = document.getElementById("autoMortgage");
+  if (resLoan > 0) {
+    autoBox.innerHTML = `<div class="auto-imported">💡 <b>자산 섹션 거주 부동산 대출금 자동 집계:</b> ${fmt(resLoan)}만원${resLoan>=10000?` (≈ ${toEok(resLoan)})`:""} (총부채에 자동 포함됨)</div>`;
+  } else {
+    autoBox.innerHTML = "";
+  }
+
+  const totalDebt = num("mortgageBalance") + num("creditBalance") + num("cardBalance") + resLoan;
+  document.getElementById("debtSummary").innerHTML =
+    `<pre>[부채 합계]\n총부채(주담대+신용+카드+자산섹션 대출금): ${fmt(totalDebt)}만원${totalDebt>=10000?` (≈ ${toEok(totalDebt)})`:""}</pre>`;
+
+  // 보험료 자가검증
+  const insMonthly = num("insMonthly");
+  const exIns = expDetailMode ? num("exInsurance") : 0;
+  const insBox = document.getElementById("insVerify");
+  if (!expDetailMode) {
+    insBox.className = "summary-box";
+    insBox.innerHTML = `<pre>월 지출이 간단입력 모드입니다. 보험료 자가검증은 상세입력 시 작동합니다.\n섹션 7 월 보험료 합계: ${fmt(insMonthly)}만원</pre>`;
+  } else {
+    const diff2 = Math.abs(insMonthly - exIns);
+    insBox.className = "summary-box" + (diff2 < 0.01 ? "" : " warn");
+    insBox.innerHTML =
+      `<pre>섹션 4 보장성 보험료: ${fmt(exIns)}만원\n섹션 7 월 보험료 합계: ${fmt(insMonthly)}만원\n` +
+      `[${diff2 < 0.01 ? "일치 ✅" : `불일치 — 차이 ${fmt(diff2)}만원 ⚠️`}]</pre>`;
+  }
+}
+
+/* ===== 재무비율 ===== */
+function calcRatios() {
+  const cf = calcCashflow();
+  let total = 0, cash = 0, realty = 0;
+  assets.forEach(r => {
+    const v = parseFloat(r.value) || 0;
+    total += v;
+    if (r.category === "현금성 자산") cash += v;
+    if (r.category === "부동산 자산") realty += v;
+  });
+  const totalDebt = num("mortgageBalance") + num("creditBalance") + num("cardBalance") + getResidenceLoanSum();
+
+  const ratios = [];
+  if (cf.incTotal > 0) {
+    const r = cf.expTotal / cf.incTotal * 100;
+    ratios.push({ label: "가계수지지표", value: r.toFixed(1) + "%", desc: "총지출 / 총수입",
+      verdict: r <= 70 ? "양호" : (r <= 90 ? "주의" : "위험"),
+      level: r <= 70 ? "good" : (r <= 90 ? "warn" : "bad") });
+  } else ratios.push({ label: "가계수지지표", value: "—", desc: "수입 입력 필요", verdict: "—", level: "warn" });
+
+  if (cf.expTotal > 0) {
+    const r = cash / cf.expTotal;
+    ratios.push({ label: "비상예비자금", value: r.toFixed(1) + "개월", desc: "현금성 자산 / 월 지출",
+      verdict: r >= 3 ? "양호" : (r >= 1 ? "주의" : "위험"),
+      level: r >= 3 ? "good" : (r >= 1 ? "warn" : "bad") });
+  } else ratios.push({ label: "비상예비자금", value: "—", desc: "지출 입력 필요", verdict: "—", level: "warn" });
+
+  if (total > 0) {
+    const r = totalDebt / total * 100;
+    ratios.push({ label: "부채부담 비율", value: r.toFixed(1) + "%", desc: "총부채 / 총자산",
+      verdict: r <= 40 ? "양호" : (r <= 60 ? "주의" : "위험"),
+      level: r <= 40 ? "good" : (r <= 60 ? "warn" : "bad") });
+  } else ratios.push({ label: "부채부담 비율", value: "—", desc: "자산 입력 필요", verdict: "—", level: "warn" });
+
+  if (cf.incTotal > 0) {
+    const r = cf.savingsMonthly / cf.incTotal * 100;
+    ratios.push({ label: "저축성향", value: r.toFixed(1) + "%", desc: "정기 저축액 / 총수입",
+      verdict: r >= 30 ? "양호" : (r >= 15 ? "주의" : "위험"),
+      level: r >= 30 ? "good" : (r >= 15 ? "warn" : "bad") });
+  } else ratios.push({ label: "저축성향", value: "—", desc: "수입 입력 필요", verdict: "—", level: "warn" });
+
+  if (total > 0) {
+    const r = realty / total * 100;
+    ratios.push({ label: "부동산 편중도", value: r.toFixed(1) + "%", desc: "부동산 자산 / 총자산",
+      verdict: r <= 75 ? "양호" : (r <= 90 ? "주의" : "위험"),
+      level: r <= 75 ? "good" : (r <= 90 ? "warn" : "bad") });
+  } else ratios.push({ label: "부동산 편중도", value: "—", desc: "자산 입력 필요", verdict: "—", level: "warn" });
+
+  return { ratios, total, cash, realty, totalDebt, cf };
+}
+
+/* ===== 결과 ===== */
+function renderResult() {
+  const { ratios, total, cash, realty, totalDebt, cf } = calcRatios();
+  const grid = document.getElementById("ratioGrid");
+  grid.innerHTML = ratios.map(r => `
+    <div class="ratio-card ${r.level}">
+      <div class="label">${r.label}</div>
+      <div class="value">${r.value}</div>
+      <div class="verdict">${r.verdict}</div>
+      <div class="label" style="margin-top:4px;">${r.desc}</div>
+    </div>`).join("");
+
+  const checks = [];
+  const diffSave = Math.abs(cf.assetMonthlySum - cf.savingsMonthly);
+  checks.push(diffSave < 0.01
+    ? "✅ 자산 섹션 월 납입금과 지출 섹션 정기 저축액이 일치합니다."
+    : `⚠️ 자산 섹션 월 납입금(${fmt(cf.assetMonthlySum)})과 지출 섹션 정기 저축액(${fmt(cf.savingsMonthly)})이 ${fmt(diffSave)}만원 차이 납니다.`);
+
+  if (expDetailMode) {
+    const insMonthly = num("insMonthly");
+    const exIns = num("exInsurance");
+    const diffIns = Math.abs(insMonthly - exIns);
+    checks.push(diffIns < 0.01
+      ? "✅ 보장 자산 월 보험료와 지출 보장성 보험료가 일치합니다."
+      : `⚠️ 보장 자산 월 보험료(${fmt(insMonthly)})와 지출 보장성 보험료(${fmt(exIns)})가 ${fmt(diffIns)}만원 차이 납니다.`);
+  }
+
+  if (Math.abs(cf.surplus) > 0.5) {
+    if (cf.surplus > 0)
+      checks.push(`⚠️ 수입−지출−저축 = ${fmt(cf.surplus)}만원. <b>파악되지 않은 지출이 있을 수 있습니다.</b>`);
+    else
+      checks.push(`⚠️ 수입−지출−저축 = ${fmt(cf.surplus)}만원으로 구조적 적자입니다.`);
+  } else {
+    checks.push(`✅ 수입−지출−저축 = ${fmt(cf.surplus)}만원 (균형).`);
+  }
+
+  const hasIssue = checks.some(s => s.startsWith("⚠️"));
+  const verifyBox = document.getElementById("finalVerify");
+  verifyBox.className = "summary-box" + (hasIssue ? " warn" : "");
+  verifyBox.innerHTML = checks.map(c => `<div>${c}</div>`).join("");
+
+  const msgs = [];
+  ratios.forEach(r => {
+    if (r.level === "good" && r.value !== "—") msgs.push(`✓ ${r.label}: ${r.verdict}`);
+    if (r.level === "warn" && r.value !== "—") msgs.push(`△ ${r.label}이(가) 주의 수준입니다.`);
+    if (r.level === "bad" && r.value !== "—") msgs.push(`✗ ${r.label}이(가) 위험 수준입니다 — 우선 점검 대상.`);
+  });
+  if (cf.surplus < 0) msgs.push("월 잉여가 음수입니다. 비정기 지출이 누락됐거나, 실제 적자 구조입니다.");
+  if (realty / Math.max(total, 1) > 0.75) msgs.push("부동산 비중이 높습니다. 노후 유동성 확보를 위한 금융자산 비중 확대를 검토해 보세요.");
+  document.getElementById("finalDiagnosis").innerHTML =
+    msgs.length ? msgs.map(m => `<div>${m}</div>`).join("") : "<div>입력 데이터가 부족합니다. 더 채워주세요.</div>";
+
+  document.getElementById("promptText").textContent = buildPrompt(ratios, cf, total, totalDebt);
+}
+
+/* ===== 프롬프트 생성 ===== */
+function buildPrompt(ratios, cf, total, totalDebt) {
+  const get = id => document.getElementById(id)?.value || "";
+  const radio = name => document.querySelector(`input[name="${name}"]:checked`)?.value || "";
+  const checks = name => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(e => e.value);
+
+  const lines = [];
+  lines.push("# 재무 진단 요청\n");
+  lines.push("저는 아래 재무 상황에 있는 개인입니다. 이 정보를 바탕으로 다음 7가지 관점에서 분석해주세요.\n");
+  lines.push("## 분석 요청 항목");
+  lines.push("1. 재무 건전성 진단 (재무비율 기준)");
+  lines.push("2. 자산 배분 분석 (시간 지평·위험성향 정합성)");
+  lines.push("3. 희망 은퇴 시나리오 달성 가능성 (보수적 추정)");
+  lines.push("4. 중기 자금 계획 (5년 이내 예정된 큰 지출)");
+  lines.push("5. 절세 계좌(ISA·연금저축·IRP) 활용 적정성");
+  lines.push("6. 짚어야 할 위험 요소 및 놓치고 있을 수 있는 점");
+  lines.push("7. 지금 의사결정이 필요한 우선순위 3가지");
+  lines.push("\n---\n");
+
+  lines.push("## 1. 기본 정보");
+  pushIf(lines, "본인 나이", get("age") && get("age") + "세");
+  pushIf(lines, "배우자", radio("spouse"));
+  pushIf(lines, "배우자 나이", get("spouseAge") && get("spouseAge") + "세");
+  pushIf(lines, "자녀 수", radio("children"));
+  const ca = checks("childAges");
+  if (ca.length) lines.push(`- 자녀 연령대: ${ca.join(", ")}`);
+  pushIf(lines, "거주 지역", radio("region"));
+  pushIf(lines, "직업 유형", radio("job"));
+  pushIf(lines, "고용 안정성", radio("jobStability"));
+  pushIf(lines, "부모 부양", radio("parents"));
+  pushIf(lines, "건강 특이사항", radio("health") + (get("healthOther") ? ` / ${get("healthOther")}` : ""));
+
+  lines.push(`\n## 2. 자산 현황 (총 ${fmt(total)}만원${total>=10000?` ≈ ${toEok(total)}`:""})`);
+  assets.forEach(r => {
+    if (!r.category && !r.account && !r.value && !r.monthly) return;
+    let line = `- ${r.category || "?"} / ${r.account || "?"} / 평가 ${fmt(parseFloat(r.value)||0)}만원 / 월납입 ${fmt(parseFloat(r.monthly)||0)}만원`;
+    const notes = Object.entries(r.notes || {}).filter(([_,v]) => v).map(([k,v]) => `${k}=${v}`);
+    if (notes.length) line += ` [${notes.join(", ")}]`;
+    lines.push(line);
+  });
+
+  const resLoan = getResidenceLoanSum();
+  lines.push(`\n## 3. 부채 현황 (총 ${fmt(totalDebt)}만원${totalDebt>=10000?` ≈ ${toEok(totalDebt)}`:""})`);
+  if (resLoan > 0) lines.push(`- (자동 집계) 거주 부동산 대출금: ${fmt(resLoan)}만원${resLoan>=10000?` (≈${toEok(resLoan)})`:""}`);
+  if (radio("mortgageHas") === "있음") {
+    lines.push(`- 주택담보대출(직접 입력): 잔액 ${fmt(num("mortgageBalance"))}만원, 금리 ${get("mortgageRate")||"?"}%, 만기 ${get("mortgageYears")||"?"}년, 월상환 ${fmt(num("mortgageMonthly"))}만원, ${radio("mortgageGrace")||"-"}`);
+  }
+  if (radio("creditHas") === "있음") lines.push(`- 신용대출: 잔액 ${fmt(num("creditBalance"))}만원, 금리 ${get("creditRate")||"?"}%`);
+  if (radio("cardHas") === "있음") lines.push(`- 카드·할부: 잔액 ${fmt(num("cardBalance"))}만원`);
+  if (radio("privateHas") === "있음") lines.push(`- 사적 채무: ${get("privateNote")}`);
+
+  lines.push(`\n## 4. 월 현금흐름`);
+  lines.push(`- 월 정기 수입: ${fmt(cf.incRegular)}만원 (본인 ${fmt(num("incSelf"))} + 배우자 ${fmt(num("incSpouse"))} + 기타 ${fmt(num("incOther"))})`);
+  lines.push(`- 연 단위 비정기 수입 (월환산): ${fmt(cf.incIrregMonthly)}만원 (연 ${fmt(cf.irregYr)}만원)`);
+  if (expDetailMode) {
+    lines.push(`- 월 정기 지출 합계 (상세입력): ${fmt(cf.expRegular)}만원`);
+    EXPENSE_ITEMS.forEach(([label, id]) => {
+      const v = num(id); if (v > 0) lines.push(`  · ${label}: ${fmt(v)}만원`);
+    });
+  } else {
+    lines.push(`- 월 전체 지출 (간단입력): ${fmt(cf.expRegular)}만원`);
+  }
+  lines.push(`- 연 단위 비정기 지출 (월환산): ${fmt(cf.exIrregMonthly)}만원 (연 ${fmt(cf.exIrregYr)}만원)`);
+  lines.push(`- 정기 저축액: ${fmt(cf.savingsMonthly)}만원`);
+  lines.push(`- 월 잉여: ${fmt(cf.surplus)}만원`);
+
+  lines.push(`\n## 5. 노후 소득 정보`);
+  pushIf(lines, "국민연금 본인", num("npsSelf") && fmt(num("npsSelf")) + "만원/월");
+  pushIf(lines, "국민연금 배우자", num("npsSpouse") && fmt(num("npsSpouse")) + "만원/월");
+  pushIf(lines, "퇴직금/퇴직연금", `${radio("severanceType")||"-"}, ${fmt(num("severanceAmt"))}만원`);
+  pushIf(lines, "개인연금", get("privatePension"));
+  pushIf(lines, "주택연금 활용", radio("housingPension"));
+  lines.push(`- 절세 계좌:`);
+  pushIf(lines, "  · 연금저축·IRP 한도", radio("taxPension"));
+  pushIf(lines, "  · ISA 만기 도래", radio("taxISA"));
+  pushIf(lines, "  · 연말정산 패턴", radio("taxYearEnd"));
+
+  lines.push(`\n## 6. 미래 예정된 큰 지출 (목적 자금)`);
+  if (radio("eduType") && radio("eduType") !== "해당 없음") lines.push(`- 자녀 교육비: ${radio("eduType")}, 시기 ${get("eduWhen")||"-"}년 후, 총액 ${fmt(num("eduAmt"))}만원`);
+  if (radio("weddingType") === "지원 의사 있음") lines.push(`- 자녀 결혼 지원: 시기 ${get("weddingWhen")||"-"}년 후, 총액 ${fmt(num("weddingAmt"))}만원`);
+  if (radio("houseMoveType") === "있음") lines.push(`- 주택 이사·매입: 시기 ${get("houseMoveWhen")||"-"}년 후, 추가자금 ${fmt(num("houseMoveAmt"))}만원${num("houseMoveAmt")>=10000?`(≈${toEok(num("houseMoveAmt"))})`:""}`);
+  if (get("carWhen") || num("carAmt")) lines.push(`- 자동차 교체: 시기 ${get("carWhen")||"-"}년 후, 비용 ${fmt(num("carAmt"))}만원`);
+  pushIf(lines, "부모 의료·요양", radio("parentCare") + (num("parentCareAmt") ? ` (예상 ${fmt(num("parentCareAmt"))}만원)` : ""));
+  pushIf(lines, "본인 노년 간병비", radio("selfCare") + (num("selfCareAmt") ? ` (예상 ${fmt(num("selfCareAmt"))}만원)` : ""));
+  pushIf(lines, "본인 큰 의료비 우려", radio("medConcern") + (get("medConcernNote") ? ` / ${get("medConcernNote")}` : ""));
+  otherGoals.forEach(g => {
+    if (g.name || g.amount) lines.push(`- 기타: ${g.name||"-"}, 시기 ${g.when||"-"}년 후, 금액 ${fmt(parseFloat(g.amount)||0)}만원`);
+  });
+
+  lines.push(`\n## 7. 보장 자산`);
+  const its = checks("insTypes");
+  if (its.length) lines.push(`- 보유 보험: ${its.join(", ")}`);
+  pushIf(lines, "회사 단체보험", radio("insGroup"));
+  if (num("insMonthly")) lines.push(`- 월 보험료 합계: ${fmt(num("insMonthly"))}만원`);
+  pushIf(lines, "주요 보장 한도", get("insLimits"));
+
+  lines.push(`\n## 8. 목표와 선호`);
+  pushIf(lines, "희망 은퇴 연령", get("retireAge") && get("retireAge") + "세");
+  pushIf(lines, "희망 은퇴 후 월 생활비", num("retireExpense") && fmt(num("retireExpense")) + "만원(현재가치)");
+  pushIf(lines, "거주 주택 노후 활용", radio("houseUse"));
+  pushIf(lines, "상속 의사", radio("inherit"));
+  pushIf(lines, "위험 감수 성향(1~5)", radio("riskScore"));
+  const styles = checks("invStyle");
+  if (styles.length) lines.push(`- 투자 스타일 선호: ${styles.join(", ")}`);
+  const prio = checks("priority");
+  if (prio.length) lines.push(`- 인생 우선순위: ${prio.join(", ")}`);
+
+  lines.push(`\n## 추가로 묻고 싶은 점`);
+  if (get("freeConcern")) lines.push(`- 가장 큰 재무적 걱정: ${get("freeConcern")}`);
+  if (get("freeQuestion")) lines.push(`- 특별히 묻고 싶은 것: ${get("freeQuestion")}`);
+
+  lines.push(`\n---\n`);
+  lines.push(`* 정확한 액수가 아닌 추정 값이 일부 포함될 수 있습니다.`);
+  lines.push(`* 답변은 일반론적 진단이며, 구체적 종목·상품 추천은 신뢰하지 마세요.`);
+
+  return lines.join("\n");
+}
+
+function pushIf(arr, label, val) { if (val) arr.push(`- ${label}: ${val}`); }
+function fmt(n) {
+  if (n === null || n === undefined || isNaN(n)) return "0";
+  return Math.round(n).toLocaleString("ko-KR");
+}
+
+/* ===== 복사 ===== */
+function copyPrompt() {
+  const text = document.getElementById("promptText").textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const old = btn.textContent;
+    btn.textContent = "✓ 복사됨";
+    setTimeout(() => btn.textContent = old, 1500);
+  }).catch(() => {
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand("copy"); document.body.removeChild(ta);
+    alert("복사되었습니다.");
+  });
+}
+
+/* ===== PDF 리포트 ===== */
+function buildPrintReport() {
+  const { ratios, total, cash, realty, totalDebt, cf } = calcRatios();
+  const get = id => document.getElementById(id)?.value || "";
+  const radio = name => document.querySelector(`input[name="${name}"]:checked`)?.value || "";
+  const checks = name => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(e => e.value);
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+
+  const rowMk = (label, val) => val ? `<tr><th style="width:35%;">${label}</th><td>${val}</td></tr>` : "";
+  let html = `
+    <div class="pr-header">
+      <h1>셀프 재무진단 리포트</h1>
+      <div class="pr-meta">생성일: ${dateStr}</div>
+    </div>
+
+    <div class="pr-section">
+      <h2>1. 기본 정보</h2>
+      <table>
+        ${rowMk("본인 나이", get("age") && get("age")+"세")}
+        ${rowMk("배우자", radio("spouse") + (get("spouseAge") ? ` / ${get("spouseAge")}세` : ""))}
+        ${rowMk("자녀", radio("children") + (checks("childAges").length ? ` (${checks("childAges").join(", ")})` : ""))}
+        ${rowMk("거주 지역", radio("region"))}
+        ${rowMk("직업·고용", radio("job") + (radio("jobStability") ? ` / ${radio("jobStability")}` : ""))}
+        ${rowMk("부모 부양", radio("parents"))}
+        ${rowMk("건강 특이사항", radio("health") + (get("healthOther") ? ` / ${get("healthOther")}` : ""))}
+      </table>
+    </div>
+
+    <div class="pr-section">
+      <h2>2. 자산 현황 — 총 ${fmt(total)}만원${total>=10000?` (≈ ${toEok(total)})`:""}</h2>
+      <table>
+        <tr><th>구분</th><th>계좌</th><th>평가(만원)</th><th>월납입</th><th>비고</th></tr>
+        ${assets.filter(r => r.category || r.account || r.value).map(r => {
+          const notes = Object.entries(r.notes||{}).filter(([_,v])=>v).map(([k,v])=>`${k}: ${v}`).join("<br>");
+          return `<tr><td>${r.category||"-"}</td><td>${r.account||"-"}</td>
+            <td>${fmt(parseFloat(r.value)||0)}</td>
+            <td>${fmt(parseFloat(r.monthly)||0)}</td>
+            <td>${notes||"-"}</td></tr>`;
+        }).join("")}
+      </table>
+    </div>
+
+    <div class="pr-section">
+      <h2>3. 부채 현황 — 총 ${fmt(totalDebt)}만원${totalDebt>=10000?` (≈ ${toEok(totalDebt)})`:""}</h2>
+      <table>
+        ${getResidenceLoanSum() > 0 ? rowMk("거주 부동산 대출(자동집계)", fmt(getResidenceLoanSum())+"만원") : ""}
+        ${radio("mortgageHas")==="있음" ? rowMk("주택담보대출", `잔액 ${fmt(num("mortgageBalance"))}만원, ${get("mortgageRate")}%, ${get("mortgageYears")}년, 월 ${fmt(num("mortgageMonthly"))}만원`) : ""}
+        ${radio("creditHas")==="있음" ? rowMk("신용대출", `잔액 ${fmt(num("creditBalance"))}만원, ${get("creditRate")}%`) : ""}
+        ${radio("cardHas")==="있음" ? rowMk("카드·할부", `${fmt(num("cardBalance"))}만원`) : ""}
+        ${radio("privateHas")==="있음" ? rowMk("사적 채무", get("privateNote")) : ""}
+      </table>
+    </div>
+
+    <div class="pr-section">
+      <h2>4. 월 현금흐름</h2>
+      <table>
+        ${rowMk("월 정기 수입", `${fmt(cf.incRegular)}만원`)}
+        ${rowMk("연 비정기 수입(월환산)", `${fmt(cf.incIrregMonthly)}만원`)}
+        ${rowMk("월 정기 지출", `${fmt(cf.expRegular)}만원 ${expDetailMode?"(상세입력)":"(간단입력)"}`)}
+        ${rowMk("연 비정기 지출(월환산)", `${fmt(cf.exIrregMonthly)}만원`)}
+        ${rowMk("정기 저축액", `${fmt(cf.savingsMonthly)}만원`)}
+        ${rowMk("월 잉여(수입−지출−저축)", `${fmt(cf.surplus)}만원`)}
+      </table>
+    </div>
+
+    <div class="pr-section">
+      <h2>5. 노후 소득</h2>
+      <table>
+        ${rowMk("국민연금 본인", num("npsSelf") && fmt(num("npsSelf"))+"만원/월")}
+        ${rowMk("국민연금 배우자", num("npsSpouse") && fmt(num("npsSpouse"))+"만원/월")}
+        ${rowMk("퇴직금/퇴직연금", `${radio("severanceType")||"-"} / ${fmt(num("severanceAmt"))}만원`)}
+        ${rowMk("개인연금", get("privatePension"))}
+        ${rowMk("주택연금", radio("housingPension"))}
+        ${rowMk("연금저축·IRP 한도", radio("taxPension"))}
+        ${rowMk("ISA 만기", radio("taxISA"))}
+        ${rowMk("연말정산 패턴", radio("taxYearEnd"))}
+      </table>
+    </div>
+
+    <div class="pr-section">
+      <h2>6. 목적 자금</h2>
+      <table>
+        ${radio("eduType") && radio("eduType")!=="해당 없음" ? rowMk("자녀 교육비", `${radio("eduType")} / ${get("eduWhen")}년 후 / ${fmt(num("eduAmt"))}만원`) : ""}
+        ${radio("weddingType")==="지원 의사 있음" ? rowMk("자녀 결혼 지원", `${get("weddingWhen")}년 후 / ${fmt(num("weddingAmt"))}만원`) : ""}
+        ${radio("houseMoveType")==="있음" ? rowMk("주택 이사·매입", `${get("houseMoveWhen")}년 후 / ${fmt(num("houseMoveAmt"))}만원`) : ""}
+        ${(num("carAmt") || get("carWhen")) ? rowMk("자동차 교체", `${get("carWhen")}년 후 / ${fmt(num("carAmt"))}만원`) : ""}
+        ${radio("parentCare") ? rowMk("부모 의료·요양", `${radio("parentCare")}${num("parentCareAmt")?` / ${fmt(num("parentCareAmt"))}만원`:""}`) : ""}
+        ${radio("selfCare") ? rowMk("본인 간병비", `${radio("selfCare")}${num("selfCareAmt")?` / ${fmt(num("selfCareAmt"))}만원`:""}`) : ""}
+        ${radio("medConcern")==="있음" ? rowMk("의료비 우려", get("medConcernNote")) : ""}
+        ${otherGoals.filter(g=>g.name||g.amount).map(g => rowMk(`기타: ${g.name}`, `${g.when}년 후 / ${fmt(parseFloat(g.amount)||0)}만원`)).join("")}
+      </table>
+    </div>
+
+    <div class="pr-section">
+      <h2>7. 보장 자산</h2>
+      <table>
+        ${rowMk("보유 보험", checks("insTypes").join(", "))}
+        ${rowMk("단체보험", radio("insGroup"))}
+        ${rowMk("월 보험료", num("insMonthly") && fmt(num("insMonthly"))+"만원")}
+        ${rowMk("주요 보장 한도", get("insLimits"))}
+      </table>
+    </div>
+
+    <div class="pr-section">
+      <h2>8. 목표와 선호</h2>
+      <table>
+        ${rowMk("희망 은퇴 연령", get("retireAge")+"세")}
+        ${rowMk("희망 은퇴 후 월 생활비", fmt(num("retireExpense"))+"만원(현재가치)")}
+        ${rowMk("거주 주택 노후 활용", radio("houseUse"))}
+        ${rowMk("상속 의사", radio("inherit"))}
+        ${rowMk("위험 감수 성향(1~5)", radio("riskScore"))}
+        ${rowMk("투자 스타일", checks("invStyle").join(", "))}
+        ${rowMk("인생 우선순위", checks("priority").join(", "))}
+      </table>
+      ${get("freeConcern") ? `<h3>현재 가장 큰 재무적 걱정</h3><p>${escapeHtml(get("freeConcern"))}</p>` : ""}
+      ${get("freeQuestion") ? `<h3>특별히 묻고 싶은 것</h3><p>${escapeHtml(get("freeQuestion"))}</p>` : ""}
+    </div>
+
+    <div class="pr-section">
+      <h2>9. 재무비율 진단</h2>
+      <div class="pr-ratio">
+        ${ratios.map(r => `<div class="rc ${r.level}">
+          <div class="lbl">${r.label}</div>
+          <div class="val">${r.value}</div>
+          <div class="lbl"><b>${r.verdict}</b> — ${r.desc}</div>
+        </div>`).join("")}
+      </div>
+    </div>
+
+    <div class="pr-section">
+      <h2>10. 진단 요약</h2>
+      <ul>
+        ${(() => {
+          const msgs = [];
+          ratios.forEach(r => {
+            if (r.level === "good" && r.value !== "—") msgs.push(`✓ ${r.label}: ${r.verdict}`);
+            if (r.level === "warn" && r.value !== "—") msgs.push(`△ ${r.label}이(가) 주의 수준입니다.`);
+            if (r.level === "bad" && r.value !== "—") msgs.push(`✗ ${r.label}이(가) 위험 수준입니다.`);
+          });
+          if (cf.surplus < 0) msgs.push("월 잉여가 음수입니다.");
+          if (realty / Math.max(total, 1) > 0.75) msgs.push("부동산 비중이 높습니다.");
+          return msgs.length ? msgs.map(m=>`<li>${m}</li>`).join("") : "<li>입력 데이터가 부족합니다.</li>";
+        })()}
+      </ul>
+    </div>
+
+    <div class="pr-foot">
+      * 본 리포트는 사용자 입력 기반의 자가 진단으로, 일반론적 가이드일 뿐 전문가 상담을 대체하지 않습니다.<br>
+      * 데이터는 외부 서버로 전송되지 않으며 본인 브라우저에서만 처리됩니다.
+    </div>
+  `;
+  document.getElementById("printReport").innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function exportPDF() {
+  buildPrintReport();
+  setTimeout(() => window.print(), 100);
+}
+
+/* ===== 마크다운 저장 ===== */
+function exportMD() {
+  const { ratios, total, totalDebt, cf } = calcRatios();
+  const get = id => document.getElementById(id)?.value || "";
+  const radio = name => document.querySelector(`input[name="${name}"]:checked`)?.value || "";
+  const checks = name => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(e => e.value);
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+
+  const lines = [];
+  lines.push(`# 셀프 재무진단 리포트`);
+  lines.push(`\n생성일: ${dateStr}\n`);
+
+  lines.push(`\n## 1. 기본 정보`);
+  if (get("age")) lines.push(`- 본인 나이: ${get("age")}세`);
+  if (radio("spouse")) lines.push(`- 배우자: ${radio("spouse")}${get("spouseAge")?` (${get("spouseAge")}세)`:""}`);
+  if (radio("children")) lines.push(`- 자녀: ${radio("children")}${checks("childAges").length?` (${checks("childAges").join(", ")})`:""}`);
+  if (radio("region")) lines.push(`- 거주 지역: ${radio("region")}`);
+  if (radio("job")) lines.push(`- 직업: ${radio("job")} / 고용안정성 ${radio("jobStability")||"-"}`);
+  if (radio("parents")) lines.push(`- 부모 부양: ${radio("parents")}`);
+  if (radio("health")) lines.push(`- 건강: ${radio("health")}${get("healthOther")?` / ${get("healthOther")}`:""}`);
+
+  lines.push(`\n## 2. 자산 현황 (총 ${fmt(total)}만원${total>=10000?` ≈ ${toEok(total)}`:""})`);
+  lines.push(`\n| 구분 | 계좌 | 평가(만원) | 월납입 | 비고 |`);
+  lines.push(`|---|---|---:|---:|---|`);
+  assets.forEach(r => {
+    if (!r.category && !r.account && !r.value) return;
+    const notes = Object.entries(r.notes||{}).filter(([_,v])=>v).map(([k,v])=>`${k}=${v}`).join("; ");
+    lines.push(`| ${r.category||"-"} | ${r.account||"-"} | ${fmt(parseFloat(r.value)||0)} | ${fmt(parseFloat(r.monthly)||0)} | ${notes||"-"} |`);
+  });
+
+  const resLoan = getResidenceLoanSum();
+  lines.push(`\n## 3. 부채 현황 (총 ${fmt(totalDebt)}만원${totalDebt>=10000?` ≈ ${toEok(totalDebt)}`:""})`);
+  if (resLoan > 0) lines.push(`- (자동집계) 거주 부동산 대출금: ${fmt(resLoan)}만원`);
+  if (radio("mortgageHas")==="있음") lines.push(`- 주택담보대출: 잔액 ${fmt(num("mortgageBalance"))}만원, ${get("mortgageRate")}%, ${get("mortgageYears")}년`);
+  if (radio("creditHas")==="있음") lines.push(`- 신용대출: 잔액 ${fmt(num("creditBalance"))}만원, ${get("creditRate")}%`);
+  if (radio("cardHas")==="있음") lines.push(`- 카드·할부: ${fmt(num("cardBalance"))}만원`);
+  if (radio("privateHas")==="있음") lines.push(`- 사적 채무: ${get("privateNote")}`);
+
+  lines.push(`\n## 4. 월 현금흐름`);
+  lines.push(`- 월 정기 수입: ${fmt(cf.incRegular)}만원`);
+  lines.push(`- 월 비정기 수입(환산): ${fmt(cf.incIrregMonthly)}만원`);
+  lines.push(`- 월 정기 지출: ${fmt(cf.expRegular)}만원 ${expDetailMode?"(상세)":"(간단)"}`);
+  lines.push(`- 월 비정기 지출(환산): ${fmt(cf.exIrregMonthly)}만원`);
+  lines.push(`- 정기 저축액: ${fmt(cf.savingsMonthly)}만원`);
+  lines.push(`- **월 잉여**: ${fmt(cf.surplus)}만원`);
+
+  lines.push(`\n## 5. 노후 소득`);
+  if (num("npsSelf")) lines.push(`- 국민연금 본인: ${fmt(num("npsSelf"))}만원/월`);
+  if (num("npsSpouse")) lines.push(`- 국민연금 배우자: ${fmt(num("npsSpouse"))}만원/월`);
+  if (radio("severanceType")) lines.push(`- 퇴직금: ${radio("severanceType")} / ${fmt(num("severanceAmt"))}만원`);
+  if (get("privatePension")) lines.push(`- 개인연금: ${get("privatePension")}`);
+  if (radio("housingPension")) lines.push(`- 주택연금: ${radio("housingPension")}`);
+  if (radio("taxPension")) lines.push(`- 연금저축·IRP 한도: ${radio("taxPension")}`);
+  if (radio("taxISA")) lines.push(`- ISA 만기: ${radio("taxISA")}`);
+
+  lines.push(`\n## 6. 목적 자금`);
+  if (radio("eduType") && radio("eduType")!=="해당 없음") lines.push(`- 자녀 교육비: ${radio("eduType")}, ${get("eduWhen")}년 후, ${fmt(num("eduAmt"))}만원`);
+  if (radio("weddingType")==="지원 의사 있음") lines.push(`- 자녀 결혼: ${get("weddingWhen")}년 후, ${fmt(num("weddingAmt"))}만원`);
+  if (radio("houseMoveType")==="있음") lines.push(`- 주택 이사: ${get("houseMoveWhen")}년 후, ${fmt(num("houseMoveAmt"))}만원`);
+  if (num("carAmt")) lines.push(`- 자동차 교체: ${get("carWhen")}년 후, ${fmt(num("carAmt"))}만원`);
+  if (radio("parentCare")) lines.push(`- 부모 의료·요양: ${radio("parentCare")} / ${fmt(num("parentCareAmt"))}만원`);
+  if (radio("selfCare")) lines.push(`- 본인 간병비: ${radio("selfCare")} / ${fmt(num("selfCareAmt"))}만원`);
+  otherGoals.forEach(g => { if (g.name||g.amount) lines.push(`- 기타(${g.name}): ${g.when}년 후, ${fmt(parseFloat(g.amount)||0)}만원`); });
+
+  lines.push(`\n## 7. 보장 자산`);
+  if (checks("insTypes").length) lines.push(`- 보유 보험: ${checks("insTypes").join(", ")}`);
+  if (num("insMonthly")) lines.push(`- 월 보험료: ${fmt(num("insMonthly"))}만원`);
+
+  lines.push(`\n## 8. 목표와 선호`);
+  if (get("retireAge")) lines.push(`- 희망 은퇴 연령: ${get("retireAge")}세`);
+  if (num("retireExpense")) lines.push(`- 희망 은퇴 후 월 생활비: ${fmt(num("retireExpense"))}만원`);
+  if (radio("riskScore")) lines.push(`- 위험 감수 성향: ${radio("riskScore")}/5`);
+  if (checks("invStyle").length) lines.push(`- 투자 스타일: ${checks("invStyle").join(", ")}`);
+  if (checks("priority").length) lines.push(`- 인생 우선순위: ${checks("priority").join(", ")}`);
+
+  lines.push(`\n## 9. 재무비율 진단\n`);
+  lines.push(`| 지표 | 값 | 판정 | 기준 |`);
+  lines.push(`|---|---|---|---|`);
+  ratios.forEach(r => lines.push(`| ${r.label} | ${r.value} | ${r.verdict} | ${r.desc} |`));
+
+  lines.push(`\n---`);
+  lines.push(`* 본 리포트는 자가 진단입니다. 전문가 상담을 대체하지 않습니다.`);
+
+  const text = lines.join("\n");
+  const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `재무진단리포트_${dateStr}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportJSON() {
+  const data = gatherFormData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `재무진단_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON() { document.getElementById("jsonFile").click(); }
+
+function handleJSONImport(ev) {
+  const file = ev.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      location.reload();
+    } catch (err) { alert("파일 불러오기 실패: " + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function resetAll() {
+  if (!confirm("모든 입력을 초기화합니다. 계속할까요?")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+</script>
+</body>
+</html>
